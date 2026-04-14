@@ -400,6 +400,7 @@ function FiveManCaptain() {
   const [players, setPlayers] = useState([]);
   const [courses, setCourses] = useState([]);
   const [roundHistory, setRoundHistory] = useState([]);
+  const [appError, setAppError] = useState(null);
 
   // Active round state
   const [activeRound, setActiveRound] = useState(null); // full round doc
@@ -444,15 +445,17 @@ function FiveManCaptain() {
 
   // Load players on mount
   useEffect(() => {
+    if (!user) return;
     try {
-      const unsub = onPlayers(p => {
-        setPlayers(p);
-      });
+      const unsub = db.collection("players").orderBy("name").onSnapshot(
+        snap => { setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() }))); },
+        err => { setAppError("Firestore error: " + err.message); }
+      );
       return unsub;
     } catch(e) {
-      console.error("Players listener error:", e);
+      setAppError("Players load error: " + e.message);
     }
-  }, []);
+  }, [user]);
 
   // Subscribe to active round
   useEffect(() => {
@@ -471,6 +474,16 @@ function FiveManCaptain() {
   }, [roundId]);
 
   // ── Auth ───────────────────────────────────────────────────────────────────
+  if (appError) return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>ERROR</div></div>
+      <div style={{padding:20,color:"#f87171",fontSize:13,wordBreak:"break-all"}}>{appError}</div>
+      <div style={{padding:"0 12px"}}>
+        <button style={S.btn} onClick={() => { setAppError(null); setScreen("home"); }}>Try Again</button>
+      </div>
+    </div>
+  );
+
   if (authLoading) return (
     <div style={S.root}>
       <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CAPTAIN</div></div>
