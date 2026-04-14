@@ -841,57 +841,36 @@ function buildCourseMgmt() {
   const saved = loadSavedCourses();
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"COURSES")));
   const card = h("div",{className:"card"});
-
-  // Cress Creek — always shown, not editable (hardcoded)
-  card.appendChild(h("div",{className:"sec"},"Home Course"));
-  const ccRow = h("div",{className:"player-row",style:{cursor:"default"}});
-  ccRow.appendChild(h("div",{style:{flex:1}},
-    h("div",{style:{fontSize:15,color:"#c5e8c5"}},"⛳ Cress Creek CC"),
-    h("div",{style:{fontSize:11,color:"#666"}},"Blue · Rtg 71.9 / Slp 132")
-  ));
-  // Course stats for Cress Creek
-  const ccKey = "Cress_Creek_Country_Club_Blue";
-  const ccStats = state.players.reduce((acc,p) => {
-    const cs = p.courseStats?.[ccKey];
-    if (cs) { acc.rounds += cs.rounds||0; acc.money += cs.totalMoney||0; acc.wins += cs.wins||0; }
-    return acc;
-  }, {rounds:0, money:0, wins:0});
-  if (ccStats.rounds > 0) ccRow.appendChild(h("div",{style:{textAlign:"right",fontSize:11,color:"#666"}},ccStats.rounds+" rounds · "+fmt$(ccStats.money)+" total"));
-  card.appendChild(ccRow);
-
-  // Saved courses
-  if (saved.length > 0) {
-    card.appendChild(h("div",{className:"sec"},"Saved Courses"));
-    saved.forEach(c => {
-      const cKey = ((c.name||"")+"_"+(c.tee||"")).replace(/[^a-zA-Z0-9]/g,"_");
-      const cStats = state.players.reduce((acc,p) => {
-        const cs = p.courseStats?.[cKey];
-        if (cs) { acc.rounds += cs.rounds||0; acc.money += cs.totalMoney||0; }
-        return acc;
-      }, {rounds:0, money:0});
-      const row = h("div",{className:"player-row"});
-      row.appendChild(h("div",{style:{flex:1}},
-        h("div",{style:{fontSize:14}},c.name),
-        h("div",{style:{fontSize:11,color:"#666"}},c.tee+" · Rtg "+c.rating+" / Slp "+c.slope+(cStats.rounds>0?" · "+cStats.rounds+" rounds":""))
-      ));
-      const editBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px",marginRight:6}},"Edit");
-      editBtn.onclick = () => { state.editingCourse = {...c}; setState({screen:"editcourse"}); };
-      const delBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px"}},"✕");
-      delBtn.onclick = () => { if(confirm("Delete "+c.name+"?")) { deleteCourseLocal(c.id); render(); } };
-      row.appendChild(editBtn); row.appendChild(delBtn);
-      card.appendChild(row);
-    });
-  }
-
+  card.appendChild(h("div",{className:"sec"},"Courses ("+saved.length+")"));
+  saved.forEach(c => {
+    const isHome = c.id === "cress-creek";
+    const cKey = ((c.name||"")+"_"+(c.tee||"")).replace(/[^a-zA-Z0-9]/g,"_");
+    const cStats = state.players.reduce((acc,p) => {
+      const cs = p.courseStats?.[cKey];
+      if (cs) { acc.rounds += cs.rounds||0; }
+      return acc;
+    }, {rounds:0});
+    const row = h("div",{className:"player-row"});
+    row.appendChild(h("div",{style:{flex:1}},
+      h("div",{style:{display:"flex",alignItems:"center",gap:6}},
+        h("div",{style:{fontSize:14,color:isHome?"#c5e8c5":"#e4ede4"}},c.name),
+        isHome?h("span",{style:{fontSize:10,color:"#4ade80",border:"1px solid #4ade80",borderRadius:10,padding:"1px 6px"}},"Home"):null
+      ),
+      h("div",{style:{fontSize:11,color:"#666"}},c.tee+" · Rtg "+c.rating+" / Slp "+c.slope+(cStats.rounds>0?" · "+cStats.rounds+" rds":""))
+    ));
+    const editBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px",marginRight:6}},"Edit");
+    editBtn.onclick = () => { state.editingCourse={...c}; state.setupCourseName=undefined; setState({screen:"editcourse"}); };
+    const delBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px"}},"X");
+    delBtn.onclick = () => {
+      if (isHome) { alert("Cannot delete home course. Edit it instead."); return; }
+      if (confirm("Delete "+c.name+"?")) { deleteCourseLocal(c.id); render(); }
+    };
+    row.appendChild(editBtn); row.appendChild(delBtn);
+    card.appendChild(row);
+  });
   const addBtn = h("button",{className:"btn"},"+ Add New Course");
-  addBtn.onclick = () => {
-    state.editingCourse = null;
-    state.setupCourseName=""; state.setupTee="White"; state.setupRating=""; state.setupSlope=""; state.setupPar="72";
-    state.setupHoleHdcps=Array(18).fill("");
-    state.courseMode="editing";
-    setState({screen:"editcourse"});
-  };
-  const backBtn = h("button",{className:"btn-dark"},"← Back");
+  addBtn.onclick = () => { state.editingCourse=null; state.setupCourseName=""; state.setupTee="White"; state.setupRating=""; state.setupSlope=""; state.setupPar="72"; state.setupHoleHdcps=Array(18).fill(""); setState({screen:"editcourse"}); };
+  const backBtn = h("button",{className:"btn-dark"},"<- Back");
   backBtn.onclick = () => setState({screen:"club"});
   card.appendChild(addBtn); card.appendChild(backBtn);
   wrap.appendChild(card);
@@ -1188,7 +1167,15 @@ const CRESS_CREEK = {
 };
 
 function loadSavedCourses() {
-  try { return JSON.parse(localStorage.getItem("5mc_courses")||"[]"); } catch { return []; }
+  try {
+    const courses = JSON.parse(localStorage.getItem("5mc_courses")||"[]");
+    // Seed Cress Creek if not already present
+    if (!courses.find(c => c.id === "cress-creek")) {
+      courses.unshift({...CRESS_CREEK});
+      localStorage.setItem("5mc_courses", JSON.stringify(courses));
+    }
+    return courses;
+  } catch { return [{...CRESS_CREEK}]; }
 }
 function saveCourseLocal(course) {
   const courses = loadSavedCourses().filter(c => c.id !== course.id);
