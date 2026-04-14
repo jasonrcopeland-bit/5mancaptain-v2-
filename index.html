@@ -311,6 +311,10 @@ function buildScreen() {
   if (screen === "editplayer") return buildEditPlayer();
   if (screen === "spectate") return buildSpectate();
   if (screen === "gamecode") return buildGameCode();
+  if (screen === "club") return buildClub();
+  if (screen === "players") return buildRoster();
+  if (screen === "courses") return buildCourseMgmt();
+  if (screen === "editcourse") return buildEditCourse();
   return buildHome();
 }
 
@@ -761,6 +765,17 @@ function buildEditPlayer() {
 
   if (state.epErr) card.appendChild(h("div",{className:"err"},state.epErr));
 
+  // Admin toggle (only shown when admin is editing someone else)
+  if (isAdmin() && isEdit && p.id !== state.user?.uid) {
+    card.appendChild(h("div",{className:"sec"},"Admin Controls"));
+    const adminToggle = h("button",{style:{background:p.isAdmin?"#1a0808":"#0a130a",border:"1px solid "+(p.isAdmin?"#f87171":"#1e3a1e"),borderRadius:8,color:p.isAdmin?"#f87171":"#777",padding:"10px 14px",fontSize:13,cursor:"pointer",fontFamily:"Georgia,serif",width:"100%",marginBottom:8}},p.isAdmin?"★ Revoke Admin":"☆ Grant Admin");
+    adminToggle.onclick = async () => {
+      await db.collection("players").doc(p.id).update({isAdmin:!p.isAdmin});
+      const up = await loadPlayers(); setState({players:up, screen:"players"});
+    };
+    card.appendChild(adminToggle);
+  }
+
   const saveBtn = h("button",{className:"btn"},isEdit?"Save Changes":"Add Player");
   saveBtn.onclick = async () => {
     if (!state.epName?.trim()) { state.epErr="Name required"; render(); return; }
@@ -790,9 +805,184 @@ function buildEditPlayer() {
   return wrap;
 }
 
+// ── Club Hub Screen ────────────────────────────────────────────────────────────
+function buildClub() {
+  const admin = isAdmin();
+  const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"PEOPLE & PLACES")));
+  const card = h("div",{className:"card"});
+
+  const playersBtn = h("button",{className:"btn"},"👤 Players & Profiles");
+  playersBtn.onclick = () => setState({screen:"players"});
+  const coursesBtn = h("button",{className:"btn-dark"},"⛳ Courses");
+  coursesBtn.onclick = () => setState({screen:"courses"});
+  card.appendChild(playersBtn);
+  card.appendChild(coursesBtn);
+
+  if (admin) {
+    card.appendChild(h("div",{style:{borderBottom:"1px solid #1a3a1a",margin:"12px 0"}}));
+    card.appendChild(h("div",{className:"sec"},"Admin Controls"));
+    const resetBtn = h("button",{style:{width:"100%",background:"#1a0808",border:"1px solid #3a1a1a",borderRadius:8,color:"#f87171",padding:"12px",fontSize:14,fontFamily:"Georgia,serif",cursor:"pointer",marginTop:6}},"⚠️ Hard Reset All Stats & History");
+    resetBtn.onclick = () => {
+      if (confirm("This will DELETE all stats and round history for everyone. Cannot be undone. Continue?")) {
+        hardResetAllStats();
+      }
+    };
+    card.appendChild(resetBtn);
+  }
+
+  wrap.appendChild(card);
+  wrap.appendChild(buildNav("club"));
+  return wrap;
+}
+
+// ── Course Management Screen ───────────────────────────────────────────────────
+function buildCourseMgmt() {
+  const saved = loadSavedCourses();
+  const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"COURSES")));
+  const card = h("div",{className:"card"});
+
+  // Cress Creek — always shown, not editable (hardcoded)
+  card.appendChild(h("div",{className:"sec"},"Home Course"));
+  const ccRow = h("div",{className:"player-row",style:{cursor:"default"}});
+  ccRow.appendChild(h("div",{style:{flex:1}},
+    h("div",{style:{fontSize:15,color:"#c5e8c5"}},"⛳ Cress Creek CC"),
+    h("div",{style:{fontSize:11,color:"#666"}},"Blue · Rtg 71.9 / Slp 132")
+  ));
+  // Course stats for Cress Creek
+  const ccKey = "Cress_Creek_Country_Club_Blue";
+  const ccStats = state.players.reduce((acc,p) => {
+    const cs = p.courseStats?.[ccKey];
+    if (cs) { acc.rounds += cs.rounds||0; acc.money += cs.totalMoney||0; acc.wins += cs.wins||0; }
+    return acc;
+  }, {rounds:0, money:0, wins:0});
+  if (ccStats.rounds > 0) ccRow.appendChild(h("div",{style:{textAlign:"right",fontSize:11,color:"#666"}},ccStats.rounds+" rounds
+"+fmt$(ccStats.money)+" total"));
+  card.appendChild(ccRow);
+
+  // Saved courses
+  if (saved.length > 0) {
+    card.appendChild(h("div",{className:"sec"},"Saved Courses"));
+    saved.forEach(c => {
+      const cKey = ((c.name||"")+"_"+(c.tee||"")).replace(/[^a-zA-Z0-9]/g,"_");
+      const cStats = state.players.reduce((acc,p) => {
+        const cs = p.courseStats?.[cKey];
+        if (cs) { acc.rounds += cs.rounds||0; acc.money += cs.totalMoney||0; }
+        return acc;
+      }, {rounds:0, money:0});
+      const row = h("div",{className:"player-row"});
+      row.appendChild(h("div",{style:{flex:1}},
+        h("div",{style:{fontSize:14}},c.name),
+        h("div",{style:{fontSize:11,color:"#666"}},c.tee+" · Rtg "+c.rating+" / Slp "+c.slope+(cStats.rounds>0?" · "+cStats.rounds+" rounds":""))
+      ));
+      const editBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px",marginRight:6}},"Edit");
+      editBtn.onclick = () => { state.editingCourse = {...c}; setState({screen:"editcourse"}); };
+      const delBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px"}},"✕");
+      delBtn.onclick = () => { if(confirm("Delete "+c.name+"?")) { deleteCourseLocal(c.id); render(); } };
+      row.appendChild(editBtn); row.appendChild(delBtn);
+      card.appendChild(row);
+    });
+  }
+
+  const addBtn = h("button",{className:"btn"},"+ Add New Course");
+  addBtn.onclick = () => {
+    state.editingCourse = null;
+    state.setupCourseName=""; state.setupTee="White"; state.setupRating=""; state.setupSlope=""; state.setupPar="72";
+    state.setupHoleHdcps=Array(18).fill("");
+    state.courseMode="editing";
+    setState({screen:"editcourse"});
+  };
+  const backBtn = h("button",{className:"btn-dark"},"← Back");
+  backBtn.onclick = () => setState({screen:"club"});
+  card.appendChild(addBtn); card.appendChild(backBtn);
+  wrap.appendChild(card);
+  wrap.appendChild(buildNav("club"));
+  return wrap;
+}
+
+// ── Edit Course Screen ─────────────────────────────────────────────────────────
+function buildEditCourse() {
+  const ec = state.editingCourse;
+  const isEdit = !!ec;
+  // Pre-fill if editing
+  if (isEdit && state.setupCourseName === undefined) {
+    state.setupCourseName = ec.name||"";
+    state.setupTee = ec.tee||"White";
+    state.setupRating = ec.rating||"";
+    state.setupSlope = ec.slope||"";
+    state.setupPar = ec.par||"72";
+    state.setupHoleHdcps = [...(ec.holeHdcps||Array(18).fill(""))];
+  }
+  if (!state.setupHoleHdcps) state.setupHoleHdcps = Array(18).fill("");
+  if (!state.setupTee) state.setupTee = "White";
+
+  const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},isEdit?"EDIT COURSE":"ADD COURSE")));
+  const card = h("div",{className:"card"});
+
+  card.appendChild(h("div",{className:"sec"},"Course Name"));
+  const nameInp = h("input",{type:"text",placeholder:"Course name"});
+  nameInp.value = state.setupCourseName||"";
+  nameInp.addEventListener("input",e=>{state.setupCourseName=e.target.value;});
+  card.appendChild(nameInp);
+
+  card.appendChild(h("div",{className:"sec"},"Tees"));
+  const teeRow = h("div",{className:"row"});
+  ["Black","Blue","White","Gold","Red"].forEach(t=>{
+    const isA = state.setupTee===t;
+    const tb = h("button",{style:{flex:1,background:isA?"#1a5c1a":"#0a130a",border:isA?"1px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:isA?"#e4ede4":"#888",padding:"8px 4px",fontSize:12,cursor:"pointer",fontFamily:"Georgia,serif"}},t);
+    tb.onclick = () => { state.setupTee=t; render(); };
+    teeRow.appendChild(tb);
+  });
+  card.appendChild(teeRow);
+
+  card.appendChild(h("div",{className:"sec"},"Rating / Slope / Par"));
+  const rRow = h("div",{className:"row"});
+  const ri = h("input",{type:"number",placeholder:"Rating",style:{flex:1,marginBottom:0}}); ri.value=state.setupRating||""; ri.addEventListener("input",e=>{state.setupRating=e.target.value;});
+  const si = h("input",{type:"number",placeholder:"Slope",style:{flex:1,marginBottom:0}}); si.value=state.setupSlope||""; si.addEventListener("input",e=>{state.setupSlope=e.target.value;});
+  const pi = h("input",{type:"number",placeholder:"Par",style:{flex:1,marginBottom:0}}); pi.value=state.setupPar||"72"; pi.addEventListener("input",e=>{state.setupPar=e.target.value;});
+  rRow.appendChild(ri); rRow.appendChild(si); rRow.appendChild(pi);
+  card.appendChild(rRow);
+
+  card.appendChild(h("div",{className:"sec"},"Hole Handicap Ratings"));
+  const grid = h("div",{style:{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:3}});
+  for(let i=0;i<18;i++){
+    const cell=h("div",{style:{background:"#080d08",border:"1px solid #1a3a1a",borderRadius:5,padding:"3px 2px",textAlign:"center"}});
+    cell.appendChild(h("div",{style:{fontSize:9,color:"#4ade80"}},"H"+(i+1)));
+    const inp=h("input",{type:"number",style:{width:"100%",background:"transparent",border:"none",borderTop:"1px solid #1a3a1a",color:"#e4ede4",padding:"3px 0",fontSize:11,textAlign:"center",outline:"none",fontFamily:"Georgia,serif",marginTop:2}});
+    inp.value=state.setupHoleHdcps[i]||"";
+    const idx=i; inp.addEventListener("input",e=>{state.setupHoleHdcps[idx]=e.target.value;});
+    cell.appendChild(inp); grid.appendChild(cell);
+  }
+  card.appendChild(grid);
+
+  const saveBtn = h("button",{className:"btn"},isEdit?"Save Changes":"Save Course");
+  saveBtn.onclick = () => {
+    const cd = {
+      id: isEdit ? ec.id : Date.now().toString(),
+      name:state.setupCourseName||"", tee:state.setupTee||"White",
+      rating:state.setupRating||"", slope:state.setupSlope||"",
+      par:state.setupPar||"72", holeHdcps:[...state.setupHoleHdcps],
+      holePars:Array(18).fill("4")
+    };
+    saveCourseLocal(cd);
+    // Clear temp state
+    state.setupCourseName=undefined; state.setupTee=undefined; state.setupRating=undefined;
+    state.setupSlope=undefined; state.setupPar=undefined; state.setupHoleHdcps=undefined;
+    state.editingCourse=null;
+    setState({screen:"courses"});
+  };
+  const backBtn = h("button",{className:"btn-dark"},"← Cancel");
+  backBtn.onclick = () => {
+    state.setupCourseName=undefined; state.editingCourse=null;
+    setState({screen:"courses"});
+  };
+  card.appendChild(saveBtn); card.appendChild(backBtn);
+  wrap.appendChild(card);
+  return wrap;
+}
+
 // ── Nav ───────────────────────────────────────────────────────────────────────
 function buildNav(active) {
-  const tabs = [["home","🏠","Home"],["newround","⛳","Round"],["history","📋","History"],["stats","📊","Stats"],["roster","👤","Roster"]];
+  const tabs = [["home","🏠","Home"],["newround","⛳","Round"],["history","📋","History"],["stats","📊","Stats"],["club","⛳","People & Places"]];
   const nav = h("div",{className:"nav"});
   tabs.forEach(([s,icon,lbl]) => {
     const btn = h("button",{className:active===s?"active":""},h("div",{style:{fontSize:16}},icon),lbl);
@@ -818,6 +1008,8 @@ function buildNav(active) {
         }
       } else if (s === "home") {
         setState({screen:"home"});
+      } else if (s === "club") {
+        setState({screen:"club"});
       } else {
         setState({screen:s});
       }
@@ -838,11 +1030,17 @@ function buildRoster() {
     const info = h("div",{style:{flex:1}},
       h("div",{style:{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
         h("div",{style:{fontSize:15}},p.name),
-        p.affiliation?h("div",{style:{fontSize:10,color:affCol,border:"1px solid "+affCol,borderRadius:10,padding:"2px 7px"}},p.affiliation):null
+        p.affiliation?h("div",{style:{fontSize:10,color:affCol,border:"1px solid "+affCol,borderRadius:10,padding:"2px 7px"}},p.affiliation):null,
+        p.isAdmin?h("div",{style:{fontSize:10,color:"#f59e0b",border:"1px solid #f59e0b",borderRadius:10,padding:"2px 7px"}},"★ Admin"):null
       ),
       h("div",{style:{fontSize:11,color:"#666"}},"Idx "+(p.lastIndex||p.index||"—")+" · "+(p.rounds||0)+" rds · "+(p.wins||0)+"W · "+fmt$(p.totalMoney||0)));
-    const editBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"5px 9px"}},"✏️ Edit");
-    editBtn.onclick = () => { state.editPlayer=p; setState({screen:"editplayer"}); };
+    const canEdit = canEditPlayer(p.id);
+    const editBtn = canEdit ? h("button",{className:"btn-ghost",style:{fontSize:11,padding:"5px 9px"}},"✏️ Edit") : null;
+    if (editBtn) editBtn.onclick = () => {
+      state.editPlayer=p;
+      state.epName=undefined; // force re-init
+      setState({screen:"editplayer"});
+    };
     const ghin = h("a",{href:"https://www.ghin.com/golfers/lookup",target:"_blank",style:{fontSize:11,color:"#4ade80",textDecoration:"none"}},"GHIN");
     row.appendChild(info); row.appendChild(ghin);
     card.appendChild(row);
@@ -852,7 +1050,7 @@ function buildRoster() {
   const backBtn = h("button",{className:"btn-dark"},"← Back");
   backBtn.onclick = () => setState({screen:"home"});
   card.appendChild(addBtn); card.appendChild(backBtn);
-  wrap.appendChild(card); wrap.appendChild(buildNav("roster"));
+  wrap.appendChild(card); wrap.appendChild(buildNav("club"));
   return wrap;
 }
 
@@ -934,6 +1132,35 @@ function buildSetupPlayers() {
 
 // ── Affiliations ──────────────────────────────────────────────────────────────
 const AFFILIATIONS = ["The Parlor", "The Establishment", "Naper-Vegas", "Cress", "Independent"];
+
+// ── Admin helpers ─────────────────────────────────────────────────────────────
+function isAdmin() {
+  const me = state.players.find(p => p.id === state.user?.uid);
+  return !!(me?.isAdmin);
+}
+function canEditPlayer(playerId) {
+  return isAdmin() || state.user?.uid === playerId;
+}
+
+// ── Hard reset stats ───────────────────────────────────────────────────────────
+async function hardResetAllStats() {
+  if (!isAdmin()) return;
+  const snap = await db.collection("players").get();
+  const batch = db.batch();
+  snap.docs.forEach(doc => {
+    batch.update(doc.ref, {
+      rounds:0, wins:0, totalMoney:0, totalHoles:0,
+      captainHoles:0, captainMoney:0, courseStats:{}
+    });
+  });
+  // Delete all round history
+  const rSnap = await db.collection("rounds").get();
+  rSnap.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+  const updatedPlayers = await loadPlayers();
+  setState({players:updatedPlayers, history:[]});
+  alert("All stats and round history have been reset.");
+}
 
 // ── Hardcoded default course ──────────────────────────────────────────────────
 const CRESS_CREEK = {
@@ -1482,8 +1709,54 @@ function buildGame() {
       await updateRound(state.roundId, {holes:newHoles, activeDpp, ledger:nl});
       if (currentHole>=17) {
         const results = orderPlayers.map((p,i)=>({playerId:round.playerOrder[i],name:p.name,money:nl[i]}));
-        await db.collection("rounds").doc(state.roundId).update({status:"complete",finalLedger:nl,results,completedAt:firebase.firestore.FieldValue.serverTimestamp()});
-        setState({screen:"summary",holes:newHoles,ledger:nl});
+        await db.collection("rounds").doc(state.roundId).update({
+          status:"complete", finalLedger:nl, results,
+          completedAt:firebase.firestore.FieldValue.serverTimestamp(),
+          date: new Date().toLocaleDateString()
+        });
+        // Write player stats to Firestore
+        try {
+          const batch = db.batch();
+          const winnerIdx = nl.indexOf(Math.max(...nl));
+          const courseKey = ((round.courseData?.name||"Unknown")+"_"+(round.courseData?.tee||"White")).replace(/[^a-zA-Z0-9]/g,"_");
+          orderPlayers.forEach((p, oi) => {
+            const pid = round.playerOrder?.[oi];
+            if (!pid) return;
+            const pRef = db.collection("players").doc(pid);
+            // Calculate captain holes and money for this player
+            let captHoles=0, captMoney=0, prevL=[0,0,0,0,0];
+            newHoles.forEach(h2 => {
+              const after = h2.ledgerAfter || prevL;
+              const diff = (after[oi]||0) - (prevL[oi]||0);
+              if (h2.captainOI === oi) { captHoles++; captMoney += diff; }
+              prevL = after;
+            });
+            const isWinner = winnerIdx === oi ? 1 : 0;
+            const playerMoney = Math.round(nl[oi]||0);
+            // Build course stat update
+            const courseUpdate = {};
+            courseUpdate["courseStats."+courseKey+".rounds"] = firebase.firestore.FieldValue.increment(1);
+            courseUpdate["courseStats."+courseKey+".totalMoney"] = firebase.firestore.FieldValue.increment(playerMoney);
+            courseUpdate["courseStats."+courseKey+".wins"] = firebase.firestore.FieldValue.increment(isWinner);
+            courseUpdate["courseStats."+courseKey+".courseName"] = round.courseData?.name||"Unknown";
+            courseUpdate["courseStats."+courseKey+".tee"] = round.courseData?.tee||"White";
+            batch.update(pRef, {
+              rounds: firebase.firestore.FieldValue.increment(1),
+              totalMoney: firebase.firestore.FieldValue.increment(playerMoney),
+              totalHoles: firebase.firestore.FieldValue.increment(18),
+              captainHoles: firebase.firestore.FieldValue.increment(captHoles),
+              captainMoney: firebase.firestore.FieldValue.increment(Math.round(captMoney)),
+              wins: firebase.firestore.FieldValue.increment(isWinner),
+              lastIndex: p.lastIndex||p.index||"0",
+              ...courseUpdate
+            });
+          });
+          await batch.commit();
+          console.log("Stats written successfully");
+        } catch(e) { console.error("Stats write failed:", e); }
+        // Refresh players list
+        const updatedPlayers = await loadPlayers();
+        setState({screen:"summary", holes:newHoles, ledger:nl, players:updatedPlayers});
       } else {
         setState({holes:newHoles,ledger:nl,currentHole:currentHole+1,step:"captain",partner:null,winner:null,pts:null,passed:[],editingHole:null});
       }
