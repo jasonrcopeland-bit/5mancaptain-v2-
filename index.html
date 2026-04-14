@@ -61,10 +61,19 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 async function signInWithGoogle() {
   try {
-    const result = await auth.signInWithPopup(googleProvider);
-    return result.user;
+    await auth.signInWithRedirect(googleProvider);
   } catch (e) {
     console.error("Sign in error:", e);
+  }
+}
+
+// Handle redirect result on page load
+async function getRedirectResult() {
+  try {
+    const result = await auth.getRedirectResult();
+    return result?.user || null;
+  } catch (e) {
+    console.error("Redirect result error:", e);
     return null;
   }
 }
