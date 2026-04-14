@@ -45,16 +45,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-// ── Firebase ──────────────────────────────────────────────────────────────────
-// Debug logger
-function dbg(msg) {
-  const el = document.getElementById("debug-log");
-  if (el) el.innerHTML += msg + "<br>";
-  console.log(msg);
-}
-dbg("1. Script started");
+// -- Firebase --
 
-dbg("2. Initializing Firebase...");
 const fbApp = firebase.initializeApp({
   apiKey: "AIzaSyD_Xp8LrkX8BsJ4E65LZVPAhidDXxQyzCw",
   authDomain: "man-captain-scoring.firebaseapp.com",
@@ -64,9 +56,8 @@ const fbApp = firebase.initializeApp({
   appId: "1:544174327153:web:1e8493a7ceacf2741e62d0"
 });
 const db = firebase.firestore();
-dbg("3. Firebase initialized");
 
-// ── State ─────────────────────────────────────────────────────────────────────
+// -- State --
 let state = {
   screen: "login",
   user: null,
@@ -109,7 +100,7 @@ function setState(updates) {
   render();
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers --
 function fmt$(n) {
   if (!n) return "$0";
   const r = Math.round(n);
@@ -208,7 +199,7 @@ function computeSettlement(orderPlayers, ledger, playerOrder, allPlayers) {
   return txns;
 }
 
-// ── Firebase ops ──────────────────────────────────────────────────────────────
+// -- Firebase ops --
 async function pinSignIn(playerId, pin) {
   const snap = await db.collection("players").doc(playerId).get();
   if (!snap.exists) return {error:"Player not found"};
@@ -256,14 +247,14 @@ async function loadHistory() {
   return snap.docs.map(d=>({id:d.id,...d.data()}));
 }
 
-// ── Session ───────────────────────────────────────────────────────────────────
+// -- Session --
 function loadSession() {
   try { return JSON.parse(localStorage.getItem("5mc_user")); } catch { return null; }
 }
 function saveSession(u) { localStorage.setItem("5mc_user", JSON.stringify(u)); }
 function clearSession() { localStorage.removeItem("5mc_user"); }
 
-// ── Render ────────────────────────────────────────────────────────────────────
+// -- Render --
 function h(tag, attrs, ...children) {
   const el = document.createElement(tag);
   if (attrs) {
@@ -290,9 +281,6 @@ function h(tag, attrs, ...children) {
 }
 
 function render() {
-  dbg("render: screen="+state.screen+" user="+(state.user?.name||"none"));
-  const loading = document.getElementById("loading");
-  if (loading) loading.style.display = "none";
   const app = document.getElementById("app");
   app.innerHTML = "";
   let screen;
@@ -459,7 +447,7 @@ function buildMidroundHistory() {
   return wrap;
 }
 
-// ── Login ─────────────────────────────────────────────────────────────────────
+// -- Login --
 function buildLogin() {
   const {loginMode, loginErr, loginLoading, selectedPlayer} = state;
   const wrap = h("div",{}, h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"CAPTAIN AT THE CREEK")));
@@ -539,7 +527,7 @@ function buildLogin() {
   return wrap;
 }
 
-// ── Home ──────────────────────────────────────────────────────────────────────
+// -- Home --
 function buildHome() {
   const {user, players, history} = state;
   const wrap = h("div",{},
@@ -610,7 +598,7 @@ function buildHome() {
   return wrap;
 }
 
-// ── Game Code Share Screen ────────────────────────────────────────────────────
+// -- Game Code Share Screen --
 function buildGameCode() {
   const {round} = state;
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"SHARE ROUND")));
@@ -640,7 +628,7 @@ function buildGameCode() {
   return wrap;
 }
 
-// ── Spectate Screen ───────────────────────────────────────────────────────────
+// -- Spectate Screen --
 function buildSpectate() {
   const round = state.spectateRound;
   if (!round) return buildHome();
@@ -708,7 +696,7 @@ function buildSpectate() {
   return wrap;
 }
 
-// ── Edit Player Screen ────────────────────────────────────────────────────────
+// -- Edit Player Screen --
 function buildEditPlayer() {
   const p = state.editPlayer;
   const isEdit = !!p;
@@ -818,7 +806,7 @@ function buildEditPlayer() {
   return wrap;
 }
 
-// ── Club Hub Screen ────────────────────────────────────────────────────────────
+// -- Club Hub Screen --
 function buildClub() {
   const admin = isAdmin();
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"PEOPLE & PLACES")));
@@ -848,7 +836,7 @@ function buildClub() {
   return wrap;
 }
 
-// ── Course Management Screen ───────────────────────────────────────────────────
+// -- Course Management Screen --
 function buildCourseMgmt() {
   const saved = loadSavedCourses();
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"COURSES")));
@@ -868,8 +856,7 @@ function buildCourseMgmt() {
     if (cs) { acc.rounds += cs.rounds||0; acc.money += cs.totalMoney||0; acc.wins += cs.wins||0; }
     return acc;
   }, {rounds:0, money:0, wins:0});
-  if (ccStats.rounds > 0) ccRow.appendChild(h("div",{style:{textAlign:"right",fontSize:11,color:"#666"}},ccStats.rounds+" rounds
-"+fmt$(ccStats.money)+" total"));
+  if (ccStats.rounds > 0) ccRow.appendChild(h("div",{style:{textAlign:"right",fontSize:11,color:"#666"}},ccStats.rounds+" rounds · "+fmt$(ccStats.money)+" total"));
   card.appendChild(ccRow);
 
   // Saved courses
@@ -912,7 +899,7 @@ function buildCourseMgmt() {
   return wrap;
 }
 
-// ── Edit Course Screen ─────────────────────────────────────────────────────────
+// -- Edit Course Screen --
 function buildEditCourse() {
   const ec = state.editingCourse;
   const isEdit = !!ec;
@@ -993,7 +980,7 @@ function buildEditCourse() {
   return wrap;
 }
 
-// ── Nav ───────────────────────────────────────────────────────────────────────
+// -- Nav --
 function buildNav(active) {
   const tabs = [["home","🏠","Home"],["newround","⛳","Round"],["history","📋","History"],["stats","📊","Stats"],["club","⛳","People & Places"]];
   const nav = h("div",{className:"nav"});
@@ -1032,7 +1019,7 @@ function buildNav(active) {
   return nav;
 }
 
-// ── Roster ────────────────────────────────────────────────────────────────────
+// -- Roster --
 function buildRoster() {
   const {players} = state;
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"ROSTER")));
@@ -1067,7 +1054,7 @@ function buildRoster() {
   return wrap;
 }
 
-// ── New Round ─────────────────────────────────────────────────────────────────
+// -- New Round --
 function buildNewRound() {
   const {setupStep} = state;
   if (setupStep === "players") return buildSetupPlayers();
@@ -1143,10 +1130,10 @@ function buildSetupPlayers() {
   return wrap;
 }
 
-// ── Affiliations ──────────────────────────────────────────────────────────────
+// -- Affiliations --
 const AFFILIATIONS = ["The Parlor", "The Establishment", "Naper-Vegas", "Cress", "Independent"];
 
-// ── Admin helpers ─────────────────────────────────────────────────────────────
+// -- Admin helpers --
 function isAdmin() {
   const me = state.players.find(p => p.id === state.user?.uid);
   return !!(me?.isAdmin);
@@ -1155,7 +1142,7 @@ function canEditPlayer(playerId) {
   return isAdmin() || state.user?.uid === playerId;
 }
 
-// ── Hard reset stats ───────────────────────────────────────────────────────────
+// -- Hard reset stats --
 async function hardResetAllStats() {
   if (!isAdmin()) return;
   const snap = await db.collection("players").get();
@@ -1175,7 +1162,7 @@ async function hardResetAllStats() {
   alert("All stats and round history have been reset.");
 }
 
-// ── Hardcoded default course ──────────────────────────────────────────────────
+// -- Hardcoded default course --
 const CRESS_CREEK = {
   id: "cress-creek",
   name: "Cress Creek Country Club",
@@ -1207,7 +1194,7 @@ function buildSetupCourse() {
 
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"SELECT COURSE")));
 
-  // ── SELECT mode: show Cress Creek + saved courses + options ──
+  // -- SELECT mode: show Cress Creek + saved courses + options --
   if (courseMode === "select") {
     const card = h("div",{className:"card"});
 
@@ -1256,7 +1243,7 @@ function buildSetupCourse() {
     return wrap;
   }
 
-  // ── SEARCH mode ──
+  // -- SEARCH mode --
   if (courseMode === "search") {
     const card = h("div",{className:"card"},h("div",{className:"sec"},"Search Course"));
     const sRow = h("div",{className:"row"});
@@ -1304,7 +1291,7 @@ function buildSetupCourse() {
     return wrap;
   }
 
-  // ── TEES mode (after API search) ──
+  // -- TEES mode (after API search) --
   if (courseMode === "tees") {
     const card = h("div",{className:"card"},h("div",{className:"sec"},"Select Tees — "+(state.selectedApiClub?.club_name||"")));
     (state.apiTees||[]).forEach(t => {
@@ -1330,7 +1317,7 @@ function buildSetupCourse() {
     return wrap;
   }
 
-  // ── MANUAL / EDIT mode ──
+  // -- MANUAL / EDIT mode --
   if (courseMode === "manual" || courseMode === "edit") {
     const isEdit = courseMode === "edit";
     const ec = isEdit ? state.editingCourse : null;
@@ -1506,7 +1493,7 @@ function buildSetupConfirm() {
   return wrap;
 }
 
-// ── Game ──────────────────────────────────────────────────────────────────────
+// -- Game --
 function buildGame() {
   const {round, holes, ledger, currentHole, activeDpp, passed, step, partner, winner, pts, hdcpInfo, pressLog, editingHole, showPress, pressingPlayer} = state;
   if (!round) return buildHome();
@@ -1800,7 +1787,7 @@ function buildGame() {
   return wrap;
 }
 
-// ── Summary ───────────────────────────────────────────────────────────────────
+// -- Summary --
 function buildSummary() {
   const {round, holes, ledger, pressLog} = state;
   const orderPlayers = (round?.playerOrder||[]).map(id => state.players.find(p=>p.id===id)||{name:"?",index:0});
@@ -1869,7 +1856,7 @@ function buildSummary() {
   return wrap;
 }
 
-// ── History ───────────────────────────────────────────────────────────────────
+// -- History --
 function buildHistory() {
   const {history} = state;
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"HISTORY")));
@@ -1892,7 +1879,7 @@ function buildHistory() {
   return wrap;
 }
 
-// ── Stats ─────────────────────────────────────────────────────────────────────
+// -- Stats --
 function buildStats() {
   const {players} = state;
   const tab = state.statsTab||"er";
@@ -1979,10 +1966,9 @@ function buildStats() {
   return wrap;
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// -- Init --
 async function init() {
-  dbg("4. init() called");
-  // Render immediately so user sees login screen, not loading forever
+    // Render immediately so user sees login screen, not loading forever
   const saved = loadSession();
   if (saved) {
     state.user = saved;
@@ -1990,10 +1976,8 @@ async function init() {
   } else {
     state.screen = "login";
   }
-  dbg("5. calling render()...");
-  render(); // Show login or home right away
-  dbg("6. render() returned");
-
+    render(); // Show login or home right away
+  
   // Load players in background — don't block render
   if (state.user) {
     try {
