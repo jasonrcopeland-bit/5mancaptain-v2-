@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1a0a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="5-Man Captain" />
+  <title>5-Man Captain at the Creek</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body { height:100%; background:#080d08; }
+    #root { min-height:100vh; background:#080d08; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+    #loading { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:#4ade80; font-family:Georgia,serif; font-size:18px; text-align:center; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="loading">⛳ Loading 5-Man Captain...</div>
+
+  <!-- Firebase SDKs -->
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+  <!-- React -->
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+
+  <!-- Firebase init (plain JS, no JSX needed) -->
+
+  <script>
+// ─── Firebase Config ──────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyD_Xp8LrkX8BsJ4E65LZVPAhidDXxQyzCw",
+  authDomain: "man-captain-scoring.firebaseapp.com",
+  databaseURL: "https://man-captain-scoring-default-rtdb.firebaseio.com",
+  projectId: "man-captain-scoring",
+  storageBucket: "man-captain-scoring.firebasestorage.app",
+  messagingSenderId: "544174327153",
+  appId: "1:544174327153:web:1e8493a7ceacf2741e62d0"
+};
+
+// ─── Initialize ───────────────────────────────────────────────────────────────
+const fbApp = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+async function signInWithGoogle() {
+  try {
+    const result = await auth.signInWithPopup(googleProvider);
+    return result.user;
+  } catch (e) {
+    console.error("Sign in error:", e);
+    return null;
+  }
+}
+
+function signOut() { return auth.signOut(); }
+
+function onAuthChange(cb) { return auth.onAuthStateChanged(cb); }
+
+// ─── Players ──────────────────────────────────────────────────────────────────
+async function getPlayers() {
+  const snap = await db.collection("players").orderBy("name").get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function savePlayer(player) {
+  const { id, ...data } = player;
+  if (id) {
+    await db.collection("players").doc(id).set(data, { merge: true });
+    return id;
+  } else {
+    const ref = await db.collection("players").add(data);
+    return ref.id;
+  }
+}
+
+async function deletePlayer(id) {
+  await db.collection("players").doc(id).delete();
+}
+
+function onPlayers(cb) {
+  return db.collection("players").orderBy("name").onSnapshot(snap => {
+    cb(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+}
+
+// ─── Courses ──────────────────────────────────────────────────────────────────
+async function getCourses() {
+  const snap = await db.collection("courses").get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function saveCourse(course) {
+  const { id, ...data } = course;
+  if (id) {
+    await db.collection("courses").doc(id).set(data, { merge: true });
+    return id;
+  } else {
+    const ref = await db.collection("courses").add(data);
+    return ref.id;
+  }
+}
+
+async function deleteCourse(id) {
+  await db.collection("courses").doc(id).delete();
+}
+
+// ─── Rounds ───────────────────────────────────────────────────────────────────
+function generateGameCode() {
+  const words = ["CREEK","EAGLE","BIRDIE","BOGEY","FAIRWAY","GREEN","ROUGH","FLAG"];
+  const word = words[Math.floor(Math.random() * words.length)];
+  const num = Math.floor(Math.random() * 90) + 10;
+  return `${word}-${num}`;
+}
+
+async function createRound(roundData) {
+  const code = generateGameCode();
+  const ref = await db.collection("rounds").add({
+    ...roundData,
+    gameCode: code,
+    status: "active",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    holes: []
+  });
+  return { id: ref.id, gameCode: code };
+}
+
+async function getRound(id) {
+  const doc = await db.collection("rounds").doc(id).get();
+  return doc.exists ? { id: doc.id, ...doc.data() } : null;
+}
+
+async function getRoundByCode(code) {
+  const snap = await db.collection("rounds").where("gameCode", "==", code.toUpperCase()).limit(1).get();
+  if (snap.empty) return null;
+  return { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+
+async function updateRound(id, data) {
+  await db.collection("rounds").doc(id).update(data);
+}
+
+async function completeRound(id, finalLedger, results) {
+  await db.collection("rounds").doc(id).update({
+    status: "complete",
+    finalLedger,
+    results,
+    completedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+function onRound(id, cb) {
+  return db.collection("rounds").doc(id).onSnapshot(doc => {
+    if (doc.exists) cb({ id: doc.id, ...doc.data() });
+  });
+}
+
+async function getRecentRounds(limit = 20) {
+  const snap = await db.collection("rounds")
+    .where("status", "==", "complete")
+    .orderBy("completedAt", "desc")
+    .limit(limit)
+    .get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ─── Player Stats Update ───────────────────────────────────────────────────────
+async function updatePlayerStats(roundData, finalLedger, holeHistory) {
+  const { playerOrder, players } = roundData;
+  const batch = db.batch();
+
+  playerOrder.forEach((playerId, orderIdx) => {
+    if (!playerId) return;
+    const playerRef = db.collection("players").doc(playerId);
+    const money = Math.round(finalLedger[orderIdx]);
+
+    // Count holes as captain and money earned as captain
+    let captainHoles = 0;
+    let captainMoney = 0;
+    let prevLedger = [0,0,0,0,0];
+
+    holeHistory.forEach(h => {
+      const moneyBefore = prevLedger[orderIdx];
+      const moneyAfter = (h.ledgerAfter || prevLedger)[orderIdx];
+      const holeMoney = (moneyAfter || 0) - (moneyBefore || 0);
+      if (h.captain === orderIdx) {
+        captainHoles++;
+        captainMoney += holeMoney;
+      }
+      prevLedger = h.ledgerAfter || prevLedger;
+    });
+
+    batch.update(playerRef, {
+      rounds: firebase.firestore.FieldValue.increment(1),
+      totalMoney: firebase.firestore.FieldValue.increment(money),
+      totalHoles: firebase.firestore.FieldValue.increment(18),
+      captainHoles: firebase.firestore.FieldValue.increment(captainHoles),
+      captainMoney: firebase.firestore.FieldValue.increment(captainMoney),
+      wins: firebase.firestore.FieldValue.increment(
+        finalLedger.indexOf(Math.max(...finalLedger)) === orderIdx ? 1 : 0
+      ),
+      lastIndex: players[orderIdx]?.index || ""
+    });
+  });
+
+  await batch.commit();
+}
+
+  </script>
+
+  <!-- React App -->
+
+  <script type="text/babel" data-presets="react">
+// ─── React globals from CDN ────────────────────────────────────────────────────
+const { useState, useEffect, useRef } = React;
+
+// ─── Math helpers ──────────────────────────────────────────────────────────────
+function calcCourseHdcp(index, slope, rating, par) {
+  return Math.round(parseFloat(index||0) * (parseFloat(slope||113) / 113) + (parseFloat(rating||72) - parseFloat(par||72)));
+}
+function strokeHolesForPlayer(extra, holeHdcps) {
+  if (extra <= 0) return [];
+  return [...holeHdcps]
+    .map((h, i) => ({ hole: i + 1, hdcp: parseInt(h) || i + 1 }))
+    .sort((a, b) => a.hdcp - b.hdcp)
+    .slice(0, extra).map(h => h.hole);
+}
+function fmt$(n) {
+  if (n === 0 || n === undefined || n === null) return "$0";
+  const rounded = Math.round(n);
+  return (rounded < 0 ? "-$" : "+$") + Math.abs(rounded);
+}
+function whoIsFurtherBehind(pis, ledger, courseHdcps) {
+  const [a, b] = pis;
+  if (ledger[a] !== ledger[b]) return ledger[a] < ledger[b] ? [a, b] : [b, a];
+  const hA = courseHdcps ? (courseHdcps[a] || 0) : 0;
+  const hB = courseHdcps ? (courseHdcps[b] || 0) : 0;
+  return hA >= hB ? [a, b] : [b, a];
+}
+function splitTwoWin(total, pis, ledger, courseHdcps) {
+  const cents = Math.round(total * 100);
+  const hi = Math.ceil(cents / 200); const lo = Math.floor(cents / 200);
+  const [further, other] = whoIsFurtherBehind(pis, ledger, courseHdcps);
+  return { [further]: hi, [other]: lo };
+}
+function splitTwoLoss(total, pis, ledger, courseHdcps) {
+  const cents = Math.round(total * 100);
+  const hi = Math.ceil(cents / 200); const lo = Math.floor(cents / 200);
+  const [further, other] = whoIsFurtherBehind(pis, ledger, courseHdcps);
+  return { [further]: lo, [other]: hi };
+}
+function nextPressDpp(mode, origDpp, currentDpp) {
+  if (mode === "double") return currentDpp * 2;
+  if (mode === "increment") return currentDpp + origDpp;
+  return currentDpp;
+}
+function computeHdcpInfo(cd, players) {
+  const par = parseInt(cd.par) || 72;
+  const slope = parseFloat(cd.slope) || 113;
+  const rating = parseFloat(cd.rating) || par;
+  const courseHdcps = players.map(p => calcCourseHdcp(p.index, slope, rating, par));
+  const low = Math.min(...courseHdcps);
+  const extras = courseHdcps.map(ch => Math.max(0, ch - low));
+  const sHoles = extras.map(e => strokeHolesForPlayer(e, cd.holeHdcps || []));
+  return { courseHdcps, low, extras, sHoles, cd };
+}
+function applyHoleMoney(h, runningLedger, dpp, courseHdcps) {
+  const realPts = h.pts === 7 ? 14 : (h.pts || 0);
+  const nl = [...runningLedger];
+  if (!h.winner || h.winner === "none" || realPts === 0) return nl;
+  const isLone = h.partner === "alone";
+  const ptVal = realPts * dpp * (isLone ? 2 : 1);
+  // Build teams from stored orderIndices
+  const captOI = [h.captainOI, ...(isLone ? [] : [h.partnerOI])];
+  const fieldOI = [0,1,2,3,4].filter(i => !captOI.includes(i));
+  const winOI = h.winner === "captain" ? captOI : fieldOI;
+  const loseOI = h.winner === "captain" ? fieldOI : captOI;
+  if (winOI.length === 1 && loseOI.length === 4) {
+    loseOI.forEach(i => { nl[i] -= ptVal; }); nl[winOI[0]] += ptVal * 4;
+  } else if (winOI.length === 4 && loseOI.length === 1) {
+    nl[loseOI[0]] -= ptVal * 4; winOI.forEach(i => { nl[i] += ptVal; });
+  } else if (winOI.length === 3 && loseOI.length === 2) {
+    winOI.forEach(i => { nl[i] += ptVal; });
+    const sp = splitTwoLoss(ptVal * 3, loseOI, nl, courseHdcps);
+    loseOI.forEach(i => { nl[i] -= sp[i]; });
+  } else if (winOI.length === 2 && loseOI.length === 3) {
+    loseOI.forEach(i => { nl[i] -= ptVal; });
+    const sp = splitTwoWin(ptVal * 3, winOI, nl, courseHdcps);
+    winOI.forEach(i => { nl[i] += sp[i]; });
+  }
+  const totalCents = nl.reduce((s, v) => s + Math.round(v * 100), 0);
+  if (totalCents !== 0) nl[winOI[0]] -= totalCents / 100;
+  nl.forEach((v, i) => { nl[i] = Math.round(v); });
+  return nl;
+}
+function replayLedger(holes, dpp, courseHdcps) {
+  let ledger = [0,0,0,0,0];
+  let currentDpp = dpp;
+  return holes.map(h => {
+    if (h.pressTo) currentDpp = h.pressTo;
+    ledger = applyHoleMoney(h, ledger, currentDpp, courseHdcps);
+    return { ...h, ledgerAfter: [...ledger], dpp: currentDpp };
+  });
+}
+function computeSettlement(players, ledger) {
+  const balances = players.map((p, i) => ({ ...p, bal: Math.round(ledger[i] || 0) }));
+  const cred = balances.filter(p => p.bal > 0).sort((a,b) => b.bal - a.bal).map(p => ({...p, rem: p.bal}));
+  const debt = balances.filter(p => p.bal < 0).sort((a,b) => a.bal - b.bal).map(p => ({...p, rem: Math.abs(p.bal)}));
+  const txns = [];
+  let ci = 0, di = 0;
+  while (ci < cred.length && di < debt.length) {
+    const amt = Math.min(cred[ci].rem, debt[di].rem);
+    if (amt > 0) txns.push({ from: debt[di], to: cred[ci], amount: amt });
+    cred[ci].rem -= amt; debt[di].rem -= amt;
+    if (cred[ci].rem === 0) ci++;
+    if (debt[di].rem === 0) di++;
+  }
+  return txns;
+}
+function paymentLink(method, handle, amount, note) {
+  const enc = encodeURIComponent;
+  switch(method) {
+    case 'venmo':   return `venmo://paycharge?txn=pay&recipients=${enc(handle)}&amount=${amount}&note=${enc(note)}&audience=private`;
+    case 'cashapp': return `cashapp://cash.app/${handle.startsWith('$')?handle:'$'+handle}?amount=${amount}`;
+    case 'paypal':  return `https://paypal.me/${handle.replace('@','')}/${amount}`;
+    default: return null;
+  }
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const S = {
+  root: { minHeight:"100vh", background:"#080d08", color:"#e4ede4", fontFamily:"'Georgia',serif", maxWidth:480, margin:"0 auto", paddingBottom:64 },
+  hdr: { background:"linear-gradient(160deg,#162916,#0a1a0a)", borderBottom:"2px solid #1e4a1e", padding:"20px 20px 14px", textAlign:"center" },
+  logo: { fontSize:32, fontWeight:700, letterSpacing:10, color:"#c5e8c5", textShadow:"0 0 30px #4ade8050" },
+  logoSub: { fontSize:11, letterSpacing:6, color:"#4ade80", marginTop:2 },
+  card: { margin:"12px 12px", background:"#0f1a0f", border:"1px solid #1a3a1a", borderRadius:12, padding:"14px 13px" },
+  sec: { fontSize:10, letterSpacing:3, color:"#4ade80", textTransform:"uppercase", marginBottom:9, marginTop:4, borderBottom:"1px solid #1a3a1a", paddingBottom:5 },
+  inp: { width:"100%", background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#e4ede4", padding:"10px 12px", fontSize:15, marginBottom:8, boxSizing:"border-box", outline:"none", fontFamily:"'Georgia',serif" },
+  row: { display:"flex", alignItems:"center", gap:6, marginBottom:8, flexWrap:"wrap" },
+  btn: { width:"100%", background:"linear-gradient(135deg,#1a5c1a,#267a26)", border:"none", borderRadius:8, color:"#e4ede4", padding:"12px 16px", fontSize:15, fontFamily:"'Georgia',serif", cursor:"pointer", marginTop:8 },
+  btnSm: { background:"linear-gradient(135deg,#1a5c1a,#267a26)", border:"none", borderRadius:8, color:"#e4ede4", padding:"9px 14px", fontSize:13, fontFamily:"'Georgia',serif", cursor:"pointer" },
+  btnGhost: { background:"transparent", border:"1px solid #1e3a1e", borderRadius:8, color:"#777", padding:"9px 13px", fontSize:13, fontFamily:"'Georgia',serif", cursor:"pointer" },
+  btnDark: { width:"100%", background:"#111a11", border:"1px solid #1a3a1a", borderRadius:8, color:"#666", padding:"12px 16px", fontSize:14, fontFamily:"'Georgia',serif", cursor:"pointer", marginTop:6 },
+  btnDanger: { width:"100%", background:"#1a0808", border:"1px solid #3a1a1a", borderRadius:8, color:"#f87171", padding:"12px 16px", fontSize:14, fontFamily:"'Georgia',serif", cursor:"pointer", marginTop:6 },
+  teeBtn: { flex:1, background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#888", padding:"8px 4px", fontSize:12, cursor:"pointer", fontFamily:"'Georgia',serif" },
+  teeBtnOn: { background:"#1a5c1a", border:"1px solid #4ade80", color:"#e4ede4" },
+  gameHdr: { background:"linear-gradient(160deg,#162916,#0a1a0a)", padding:"10px 14px", borderBottom:"2px solid #1e4a1e", display:"flex", justifyContent:"space-between", alignItems:"center" },
+  ledgerStrip: { display:"flex", background:"#0a130a", borderBottom:"1px solid #1a3a1a", overflowX:"auto" },
+  ledgerItem: { flex:1, padding:"7px 3px", textAlign:"center", borderRight:"1px solid #1a3a1a", minWidth:68 },
+  pickBtn: { flex:1, minWidth:"47%", background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#bbb", padding:"13px 8px", fontSize:14, cursor:"pointer", fontFamily:"'Georgia',serif", marginBottom:6, textAlign:"center" },
+  pickBtnOn: { background:"#162616", border:"2px solid #4ade80", color:"#e4ede4" },
+  winBtn: { flex:1, background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#bbb", padding:"13px 6px", fontSize:12, cursor:"pointer", fontFamily:"'Georgia',serif", textAlign:"center" },
+  winBtnOn: { background:"#162616", border:"2px solid #4ade80", color:"#e4ede4" },
+  ptBtn: { background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#bbb", padding:"13px 4px", fontSize:20, cursor:"pointer", fontFamily:"'Georgia',serif", textAlign:"center" },
+  ptBtnOn: { background:"#162616", border:"2px solid #4ade80", color:"#e4ede4" },
+  orderRow: { display:"flex", alignItems:"center", background:"#080d08", border:"1px solid #1a3a1a", borderRadius:8, padding:"11px 13px", marginBottom:7, gap:10 },
+  errBox: { fontSize:13, color:"#f87171", margin:"7px 0", padding:"8px 10px", background:"#1a0808", borderRadius:8 },
+  pressZone: { background:"#100a00", border:"1px solid #2a1a00", borderRadius:8, padding:"10px 12px", marginBottom:12 },
+  moneyBox: { background:"#080d08", borderRadius:8, padding:"10px 12px", margin:"10px 0", fontSize:13 },
+  holeCell: { background:"#080d08", border:"1px solid #1a3a1a", borderRadius:5, padding:"3px 2px", textAlign:"center" },
+  gameCodeBox: { background:"#162616", border:"2px solid #4ade80", borderRadius:12, padding:"16px", textAlign:"center", margin:"12px 0" },
+};
+
+const PAYMENT_METHODS = ['venmo','cashapp','paypal','zelle','applepay','cash'];
+const PAYMENT_LABELS = { venmo:'Venmo', cashapp:'Cash App', paypal:'PayPal', zelle:'Zelle', applepay:'Apple Pay', cash:'Cash' };
+const PAYMENT_PLACEHOLDERS = { venmo:'@username', cashapp:'$cashtag', paypal:'paypal.me/username', zelle:'Phone or email' };
+const API_KEY = "KXSGCSOLULGUKSCRQHLBHTCAME";
+const GOLF_API = "https://api.golfcourseapi.com/v1";
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+function FiveManCaptain() {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [screen, setScreen] = useState("home");
+  const [players, setPlayers] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [roundHistory, setRoundHistory] = useState([]);
+
+  // Active round state
+  const [activeRound, setActiveRound] = useState(null); // full round doc
+  const [roundId, setRoundId] = useState(null);
+  const [isScorekeeper, setIsScorekeeper] = useState(false);
+  const [hdcpInfo, setHdcpInfo] = useState(null);
+  const [holes, setHoles] = useState([]); // hole history
+  const [ledger, setLedger] = useState([0,0,0,0,0]);
+  const [currentHole, setCurrentHole] = useState(0);
+  const [activeDpp, setActiveDpp] = useState(1);
+  const [passed, setPassed] = useState([]);
+  const [pressLog, setPressLog] = useState([]);
+
+  // Per-hole UI
+  const [step, setStep] = useState("captain");
+  const [partner, setPartner] = useState(null);
+  const [winner, setWinner] = useState(null);
+  const [pts, setPts] = useState(null);
+  const [showPress, setShowPress] = useState(false);
+  const [pressingPlayer, setPressingPlayer] = useState(null);
+  const [pressCustomVal, setPressCustomVal] = useState("");
+  const [editingHole, setEditingHole] = useState(null);
+
+  // Join round
+  const [joinCode, setJoinCode] = useState("");
+  const [joinErr, setJoinErr] = useState("");
+
+  // Auth listener
+  useEffect(() => {
+    const unsub = onAuthChange(u => { setUser(u); setAuthLoading(false); });
+    return unsub;
+  }, []);
+
+  // Load players on mount
+  useEffect(() => {
+    const unsub = onPlayers(setPlayers);
+    return unsub;
+  }, []);
+
+  // Subscribe to active round
+  useEffect(() => {
+    if (!roundId) return;
+    const unsub = onRound(roundId, round => {
+      setActiveRound(round);
+      const h = round.holes || [];
+      setHoles(h);
+      if (h.length > 0) {
+        setLedger([...(h[h.length-1].ledgerAfter || [0,0,0,0,0])]);
+        setCurrentHole(round.status === "complete" ? 18 : h.length);
+      }
+      if (round.activeDpp) setActiveDpp(round.activeDpp);
+    });
+    return unsub;
+  }, [roundId]);
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  if (authLoading) return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CAPTAIN</div></div>
+      <div style={{textAlign:"center",padding:40,color:"#4ade80"}}>Loading...</div>
+    </div>
+  );
+
+  if (!user) return <LoginScreen S={S} onLogin={signInWithGoogle} />;
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function getLightningHoles(setting) {
+    return setting === "14" ? [13,16,17] : [15,16,17];
+  }
+  function isLightningHole(hIdx) {
+    if (!activeRound) return false;
+    return getLightningHoles(activeRound.lightningRound || "16").includes(hIdx);
+  }
+  function getFixedCaptain(hIdx) {
+    if (!activeRound || activeRound.lightningRound !== "14") return null;
+    if (hIdx === 14) return 3; // order index 3 = player 4
+    if (hIdx === 15) return 4; // order index 4 = player 5
+    return null;
+  }
+  function captainFor(hIdx, curLedger, curPassed) {
+    const fixed = getFixedCaptain(hIdx);
+    if (fixed !== null) return fixed;
+    if (isLightningHole(hIdx)) {
+      const eligible = [0,1,2,3,4].filter(i => !curPassed.includes(i));
+      if (!eligible.length) return hIdx % 5;
+      return [...eligible].sort((a,b) => curLedger[a] - curLedger[b])[0];
+    }
+    return hIdx % 5;
+  }
+  const curCaptainOI = activeRound ? captainFor(currentHole, ledger, passed) : 0;
+  const orderPlayers = activeRound ? (activeRound.playerOrder || []).map(pid => players.find(p => p.id === pid) || { name:"?", index:"0" }) : [];
+  const captainPlayer = orderPlayers[curCaptainOI];
+
+  function getTeams() {
+    if (partner === null) return null;
+    if (partner === "alone") return { captOI:[curCaptainOI], fieldOI:[0,1,2,3,4].filter(i=>i!==curCaptainOI) };
+    const captTeam = [curCaptainOI, partner];
+    return { captOI:captTeam, fieldOI:[0,1,2,3,4].filter(i=>!captTeam.includes(i)) };
+  }
+
+  function computeLedger(h, curLedger) {
+    const cd = activeRound?.courseData;
+    const hdcps = cd ? computeHdcpInfo(cd, orderPlayers).courseHdcps : null;
+    return applyHoleMoney(h, curLedger, activeDpp, hdcps);
+  }
+
+  async function finalizeHole() {
+    const teams = getTeams();
+    const realPts = pts === 7 ? 14 : (pts || 0);
+    const holeRec = {
+      hole: currentHole + 1,
+      captainOI: curCaptainOI,
+      partnerOI: partner === "alone" ? null : partner,
+      partner,
+      winner,
+      pts: realPts,
+      dpp: activeDpp,
+      ledgerAfter: null,
+    };
+    const nl = computeLedger(holeRec, ledger);
+    holeRec.ledgerAfter = nl;
+    const newHoles = [...holes, holeRec];
+
+    await updateRound(roundId, {
+      holes: newHoles,
+      activeDpp,
+      [`ledger`]: nl,
+    });
+
+    if (currentHole >= 17) {
+      await finishGame(nl, newHoles);
+    } else {
+      resetHoleUI();
+    }
+  }
+
+  async function finishGame(finalLedger, finalHoles) {
+    const cd = activeRound?.courseData;
+    const results = orderPlayers.map((p, i) => ({
+      playerId: activeRound.playerOrder[i],
+      name: p.name,
+      money: finalLedger[i]
+    }));
+    await completeRound(roundId, finalLedger, results);
+    await updatePlayerStats(
+      { playerOrder: activeRound.playerOrder, players: orderPlayers },
+      finalLedger,
+      finalHoles
+    );
+    setScreen("summary");
+  }
+
+  function resetHoleUI() {
+    setStep("captain"); setPartner(null);
+    setWinner(null); setPts(null);
+    setShowPress(false); setPressingPlayer(null); setPressCustomVal("");
+    setPassed([]);
+  }
+
+  async function applyPress() {
+    let newDpp;
+    const orig = parseFloat(activeRound?.dpp || 1);
+    if (activeRound?.pressMode === "custom") newDpp = parseFloat(pressCustomVal);
+    else newDpp = nextPressDpp(activeRound?.pressMode || "custom", orig, activeDpp);
+    if (!newDpp || isNaN(newDpp)) return;
+    setPressLog(pl => [...pl, { hole: currentHole+1, player: curCaptainOI, presser: pressingPlayer, fromDpp: activeDpp, toDpp: newDpp }]);
+    setActiveDpp(newDpp);
+    await updateRound(roundId, { activeDpp: newDpp });
+    setShowPress(false); setPressingPlayer(null); setPressCustomVal("");
+  }
+
+  async function saveHoleEdit(hIdx, updates) {
+    const newHoles = [...holes];
+    newHoles[hIdx] = { ...newHoles[hIdx], ...updates };
+    const cd = activeRound?.courseData;
+    const hdcps = cd ? computeHdcpInfo(cd, orderPlayers).courseHdcps : null;
+    // Replay from edited hole
+    let runLedger = hIdx === 0 ? [0,0,0,0,0] : [...(newHoles[hIdx-1].ledgerAfter || [0,0,0,0,0])];
+    for (let i = hIdx; i < newHoles.length; i++) {
+      runLedger = applyHoleMoney(newHoles[i], runLedger, newHoles[i].dpp || activeDpp, hdcps);
+      newHoles[i] = { ...newHoles[i], ledgerAfter: [...runLedger] };
+    }
+    await updateRound(roundId, { holes: newHoles, ledger: runLedger });
+    setEditingHole(null);
+  }
+
+  const negativePlayers = [0,1,2,3,4].filter(i => ledger[i] < 0);
+  const strokesThisHole = activeRound && hdcpInfo
+    ? [0,1,2,3,4].map(oi => hdcpInfo.sHoles[oi]?.includes(currentHole + 1))
+    : [false,false,false,false,false];
+
+  // Compute hdcpInfo when round is active
+  useEffect(() => {
+    if (activeRound?.courseData && orderPlayers.length === 5) {
+      setHdcpInfo(computeHdcpInfo(activeRound.courseData, orderPlayers));
+    }
+  }, [activeRound?.courseData, players]);
+
+  // ── SCREENS ───────────────────────────────────────────────────────────────
+
+  if (screen === "home") return (
+    <HomeScreen S={S} user={user} players={players} roundHistory={roundHistory}
+      setScreen={setScreen} signOut={signOut}
+      onJoinRound={async (code) => {
+        const r = await getRoundByCode(code);
+        if (!r) { setJoinErr("Game not found"); return; }
+        setRoundId(r.id); setActiveRound(r); setIsScorekeeper(false);
+        setScreen("spectate");
+      }}
+      joinCode={joinCode} setJoinCode={setJoinCode} joinErr={joinErr} setJoinErr={setJoinErr}
+    />
+  );
+
+  if (screen === "roster") return (
+    <RosterScreen S={S} players={players} currentUser={user}
+      onSave={savePlayer} onDelete={deletePlayer} setScreen={setScreen} />
+  );
+
+  if (screen === "history") return (
+    <HistoryScreen S={S} roundHistory={roundHistory} players={players}
+      loadHistory={async () => { const h = await getRecentRounds(); setRoundHistory(h); }}
+      setScreen={setScreen} />
+  );
+
+  if (screen === "stats") return (
+    <StatsScreen S={S} players={players} setScreen={setScreen} />
+  );
+
+  if (screen === "newround") return (
+    <NewRoundScreen S={S} players={players} courses={courses} user={user}
+      onSaveCourse={saveCourse} onDeleteCourse={deleteCourse}
+      onStart={async (roundData, cd) => {
+        const hdcp = computeHdcpInfo(cd, roundData.orderPlayers);
+        const { id, gameCode } = await createRound({
+          ...roundData,
+          courseData: cd,
+          createdBy: user.uid,
+          dpp: roundData.dpp,
+          activeDpp: roundData.dpp,
+        });
+        setRoundId(id);
+        setActiveRound({ ...roundData, courseData: cd, gameCode, id, holes: [], status:"active" });
+        setHdcpInfo(hdcp);
+        setActiveDpp(roundData.dpp);
+        setLedger([0,0,0,0,0]);
+        setCurrentHole(0); setHoles([]); setPressLog([]);
+        setIsScorekeeper(true);
+        resetHoleUI();
+        setScreen("game");
+      }}
+    />
+  );
+
+  if (screen === "spectate" && activeRound) return (
+    <SpectateScreen S={S} round={activeRound} holes={holes} ledger={ledger}
+      orderPlayers={orderPlayers} currentHole={currentHole} setScreen={setScreen} fmt$={fmt$} />
+  );
+
+  if (screen === "game" && activeRound && isScorekeeper) {
+    const holeNum = currentHole + 1;
+    const teams = getTeams();
+    const captTeamOI = teams?.captOI || [];
+    const fieldOI = teams?.fieldOI || [];
+    const captTeamNames = captTeamOI.map(oi => orderPlayers[oi]?.name);
+    const fieldNames = fieldOI.map(oi => orderPlayers[oi]?.name);
+    const isLone = partner === "alone";
+
+    return (
+      <div style={S.root}>
+        {/* Game header */}
+        <div style={S.gameHdr}>
+          <div>
+            <div style={{fontSize:26,fontWeight:700,letterSpacing:2,color:"#c5e8c5"}}>HOLE {holeNum}</div>
+          </div>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:11,color:"#555"}}>{activeRound.courseData?.name}</div>
+            <div style={{fontSize:12,color:"#f59e0b",fontWeight:700}}>{activeRound.gameCode}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:16,color:"#4ade80",fontWeight:700}}>${activeDpp}/pt</div>
+            <div style={{fontSize:10,color:"#555"}}>{holeNum}/18</div>
+          </div>
+        </div>
+
+        {/* Ledger */}
+        <div style={S.ledgerStrip}>
+          {orderPlayers.map((p, oi) => (
+            <div key={oi} style={S.ledgerItem}>
+              <div style={{fontSize:10,color:"#555"}}>{p.name?.split(" ")[0]}</div>
+              <div style={{fontSize:13,fontWeight:700,color:ledger[oi]>=0?"#4ade80":"#f87171"}}>{fmt$(ledger[oi])}</div>
+              {strokesThisHole[oi] && <div style={{fontSize:9,color:"#f59e0b"}}>+1</div>}
+            </div>
+          ))}
+        </div>
+        {Math.round(ledger.reduce((s,v)=>s+v,0)) !== 0 && (
+          <div style={{background:"#3a0000",fontSize:11,color:"#f87171",textAlign:"center",padding:"3px 8px"}}>
+            ⚠️ Ledger imbalance — check scoring
+          </div>
+        )}
+
+        <div style={S.card}>
+          {/* Press */}
+          {step === "captain" && holeNum > 1 && (
+            <div style={S.pressZone}>
+              {!showPress ? (
+                <button style={{background:"transparent",border:"1px solid #2a1a00",borderRadius:8,color:"#f59e0b",padding:"9px 14px",fontSize:12,cursor:"pointer",fontFamily:"'Georgia',serif",width:"100%"}}
+                  onClick={() => setShowPress(true)}>💰 Declare Press</button>
+              ) : (
+                <>
+                  <div style={{fontSize:10,color:"#f59e0b",letterSpacing:2,marginBottom:8}}>WHO IS PRESSING?</div>
+                  <div style={S.row}>
+                    {negativePlayers.map(oi => (
+                      <button key={oi}
+                        style={{...S.btnGhost,fontSize:13,...(pressingPlayer===oi?{border:"1px solid #f59e0b",color:"#f59e0b"}:{})}}
+                        onClick={() => setPressingPlayer(oi)}>
+                        {orderPlayers[oi]?.name}
+                      </button>
+                    ))}
+                    {negativePlayers.length === 0 && <div style={{fontSize:12,color:"#666"}}>No one is negative.</div>}
+                  </div>
+                  {pressingPlayer !== null && (
+                    activeRound?.pressMode === "custom" ? (
+                      <div style={S.row}>
+                        <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="New $/pt" type="number" step="0.5"
+                          value={pressCustomVal} onChange={e => setPressCustomVal(e.target.value)} />
+                        <button style={{...S.btnSm,marginLeft:6}} onClick={applyPress}>Set</button>
+                      </div>
+                    ) : (
+                      <div style={{marginTop:8}}>
+                        <div style={{fontSize:13,color:"#e4ede4"}}>
+                          {activeRound?.pressMode==="double" ? `$${activeDpp} → $${activeDpp*2}/pt` : `$${activeDpp} → $${activeDpp+parseFloat(activeRound?.dpp||1)}/pt`}
+                        </div>
+                        <button style={{...S.btn,marginTop:8}} onClick={applyPress}>Confirm Press</button>
+                      </div>
+                    )
+                  )}
+                  <button style={{...S.btnGhost,width:"100%",marginTop:8}} onClick={() => { setShowPress(false); setPressingPlayer(null); }}>Cancel</button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Step 1: Captain picks */}
+          {step === "captain" && (
+            <>
+              <div style={S.sec}>
+                ⛳ {captainPlayer?.name} is Captain
+                {isLightningHole(currentHole) && <span style={{color:"#f59e0b",fontSize:9,marginLeft:6}}>⚡ Lightning</span>}
+                {getFixedCaptain(currentHole) !== null && <span style={{color:"#888",fontSize:9,marginLeft:6}}>(fixed)</span>}
+              </div>
+              {isLightningHole(currentHole) && (
+                <button style={{...S.btnGhost,width:"100%",marginBottom:10}}
+                  onClick={() => setPassed(p => [...p, curCaptainOI])}>
+                  Pass → next biggest loser
+                </button>
+              )}
+              {/* Stroke display */}
+              <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}}>
+                {orderPlayers.map((p, oi) => (
+                  <div key={oi} style={{fontSize:12,color:strokesThisHole[oi]?"#f59e0b":"#444",background:strokesThisHole[oi]?"#1a1000":"#080d08",borderRadius:6,padding:"4px 8px",border:strokesThisHole[oi]?"1px solid #3a2000":"1px solid #1a3a1a"}}>
+                    {p.name?.split(" ")[0]} {strokesThisHole[oi]?"+1":"—"}
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                <button style={{...S.pickBtn,minWidth:"100%",...(partner==="alone"?S.pickBtnOn:{})}}
+                  onClick={() => setPartner("alone")}>
+                  🦅 Lone Captain
+                  <div style={{fontSize:11,color:partner==="alone"?"#f59e0b":"#555",marginTop:3}}>win or lose 2×</div>
+                </button>
+                {[0,1,2,3,4].filter(oi => oi !== curCaptainOI).map(oi => (
+                  <button key={oi} style={{...S.pickBtn,...(partner===oi?S.pickBtnOn:{})}}
+                    onClick={() => setPartner(oi)}>
+                    {orderPlayers[oi]?.name}
+                    {strokesThisHole[oi] && <span style={{fontSize:10,color:"#f59e0b",marginLeft:4}}>+1</span>}
+                  </button>
+                ))}
+              </div>
+              {partner !== null && (
+                <>
+                  <div style={{display:"flex",gap:8,margin:"12px 0"}}>
+                    <div style={{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}}>
+                      <div style={{fontSize:9,letterSpacing:2,color:"#4ade80",marginBottom:4}}>CAPT'S TEAM</div>
+                      {captTeamNames.map(n => <div key={n} style={{fontSize:14,color:"#c5e8c5"}}>{n}</div>)}
+                    </div>
+                    <div style={{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}}>
+                      <div style={{fontSize:9,letterSpacing:2,color:"#888",marginBottom:4}}>FIELD</div>
+                      {fieldNames.map(n => <div key={n} style={{fontSize:14,color:"#aaa"}}>{n}</div>)}
+                    </div>
+                  </div>
+                  <button style={S.btn} onClick={() => setStep("result")}>Enter Result →</button>
+                </>
+              )}
+            </>
+          )}
+
+          {/* Step 2: Result */}
+          {step === "result" && (
+            <>
+              <div style={S.sec}>Who Won Hole {holeNum}?</div>
+              <div style={{display:"flex",gap:8,marginBottom:14}}>
+                <div style={{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}}>
+                  <div style={{fontSize:9,letterSpacing:2,color:"#4ade80",marginBottom:4}}>CAPT'S TEAM</div>
+                  {captTeamNames.map(n => <div key={n} style={{fontSize:13,color:"#c5e8c5"}}>{n}</div>)}
+                </div>
+                <div style={{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}}>
+                  <div style={{fontSize:9,letterSpacing:2,color:"#888",marginBottom:4}}>FIELD</div>
+                  {fieldNames.map(n => <div key={n} style={{fontSize:13,color:"#aaa"}}>{n}</div>)}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                {[{k:"captain",lbl:"Captain's Team"},{k:"field",lbl:"Field"},{k:"none",lbl:"No Blood"}].map(({k,lbl}) => (
+                  <button key={k} style={{...S.winBtn,flex:k==="none"?0.7:1,...(winner===k?S.winBtnOn:{})}}
+                    onClick={() => { setWinner(k); if(k==="none") setPts(null); }}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+              {winner && winner !== "none" && (
+                <>
+                  <div style={S.sec}>How Many Points?</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5,margin:"8px 0"}}>
+                    {[1,2,3,4,5,6,7].map(p => (
+                      <button key={p} style={{...S.ptBtn,...(pts===p?S.ptBtnOn:{})}} onClick={() => setPts(p)}>
+                        {p}{p===7&&<div style={{fontSize:8,color:"#f59e0b",marginTop:2}}>×2</div>}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {/* Money preview */}
+              {winner && (winner==="none"||pts) && (() => {
+                const realPts = pts===7?14:pts;
+                const ptVal = (realPts||0)*activeDpp*(isLone?2:1);
+                return (
+                  <div style={S.moneyBox}>
+                    <div style={{color:"#4ade80",fontSize:10,letterSpacing:2,marginBottom:6}}>MONEY PREVIEW</div>
+                    {winner==="none"?<div style={{color:"#555"}}>No blood.</div>:
+                      isLone?(winner==="captain"
+                        ?<><div style={{color:"#e4ede4"}}>{realPts}pts × ${activeDpp} × 2 = <b>${ptVal}</b>/player</div><div style={{color:"#4ade80",marginTop:4}}>{captainPlayer?.name} collects <b>${ptVal*4}</b></div></>
+                        :<><div style={{color:"#e4ede4"}}>{realPts}pts × ${activeDpp} × 2 = <b>${ptVal}</b>/player</div><div style={{color:"#f87171",marginTop:4}}>{captainPlayer?.name} pays <b>${ptVal*4}</b></div></>
+                      ):captTeamOI.length===3?(
+                        <><div style={{color:"#4ade80"}}>Winners each +<b>${ptVal}</b></div><div style={{color:"#f87171",marginTop:4}}>Losers split <b>-${ptVal*3}</b></div></>
+                      ):(
+                        <><div style={{color:"#f87171"}}>Losers each -<b>${ptVal}</b></div><div style={{color:"#4ade80",marginTop:4}}>Winners split <b>+${ptVal*3}</b></div></>
+                      )
+                    }
+                    {pts===7&&<div style={{color:"#f59e0b",fontSize:11,marginTop:6}}>🔥 7 pts → 14</div>}
+                  </div>
+                );
+              })()}
+              <button style={{...S.btn,opacity:(winner==="none"||pts)?1:0.4}}
+                onClick={() => { if(winner==="none"||pts) finalizeHole(); }}>
+                {holeNum<18?`Confirm → Hole ${holeNum+1}`:"Finish Round"}
+              </button>
+              <button style={S.btnDark} onClick={() => setStep("captain")}>← Change Teams</button>
+            </>
+          )}
+        </div>
+
+        {/* Edit closed holes */}
+        {holes.length > 0 && (
+          <div style={{...S.card,marginTop:0}}>
+            <div style={S.sec}>Edit Closed Holes</div>
+            {holes.map((h, hIdx) => (
+              <div key={hIdx}>
+                {editingHole === hIdx ? (
+                  <EditHoleForm h={h} hIdx={hIdx} orderPlayers={orderPlayers}
+                    onSave={saveHoleEdit} onCancel={() => setEditingHole(null)} S={S} />
+                ) : (
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#080d08",borderRadius:8,padding:"8px 12px",marginBottom:6}}>
+                    <div>
+                      <span style={{fontSize:13,color:"#4ade80",fontWeight:700}}>H{h.hole}</span>
+                      <span style={{fontSize:12,color:"#777",marginLeft:8}}>
+                        {orderPlayers[h.captainOI]?.name}{h.partner==="alone"?" 🦅":h.partner!==null?` +${orderPlayers[h.partnerOI]?.name}`:""}
+                      </span>
+                      <span style={{fontSize:12,marginLeft:8,color:h.winner==="none"?"#444":h.winner==="captain"?"#4ade80":"#f87171"}}>
+                        {h.winner==="none"?"No blood":`${h.winner==="captain"?"Capt":"Field"} ${h.pts}pts`}
+                      </span>
+                    </div>
+                    <button style={{...S.btnGhost,fontSize:11,padding:"4px 10px"}} onClick={() => setEditingHole(hIdx)}>Edit</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Edit handicaps */}
+        <div style={{...S.card,marginTop:0,marginBottom:80}}>
+          <div style={S.sec}>Handicaps (edit goes forward only)</div>
+          {orderPlayers.map((p, oi) => (
+            <div key={oi} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <span style={{flex:1,fontSize:13,color:"#aaa"}}>{p.name}</span>
+              <input style={{...S.inp,width:70,marginBottom:0,textAlign:"center"}}
+                type="number" step="0.1" defaultValue={p.index}
+                onBlur={async e => {
+                  const newIdx = e.target.value;
+                  await savePlayer({ ...p, lastIndex: newIdx });
+                }} />
+              <span style={{fontSize:12,color:"#4ade80",minWidth:60}}>Hdcp {hdcpInfo?.courseHdcps[oi]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "summary") return (
+    <SummaryScreen S={S} round={activeRound} holes={holes} ledger={ledger}
+      orderPlayers={orderPlayers} players={players} pressLog={pressLog}
+      setScreen={setScreen} fmt$={fmt$} />
+  );
+
+  return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CAPTAIN</div></div>
+      <div style={{textAlign:"center",padding:40,color:"#555"}}>Loading...</div>
+    </div>
+  );
+}
+
+// ─── Login Screen ─────────────────────────────────────────────────────────────
+function LoginScreen({ S, onLogin }) {
+  return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CAPTAIN AT THE CREEK</div></div>
+      <div style={S.card}>
+        <div style={{textAlign:"center",padding:"20px 0"}}>
+          <div style={{fontSize:64,marginBottom:16}}>⛳</div>
+          <div style={{fontSize:18,color:"#c5e8c5",marginBottom:8}}>Welcome to 5-Man Captain</div>
+          <div style={{fontSize:13,color:"#666",marginBottom:24}}>Sign in to access your profile, stats, and game history</div>
+          <button style={{...S.btn,background:"#fff",color:"#333",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}
+            onClick={onLogin}>
+            <span style={{fontSize:18}}>G</span> Sign in with Google
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Home Screen ──────────────────────────────────────────────────────────────
+function HomeScreen({ S, user, players, roundHistory, setScreen, signOut, onJoinRound, joinCode, setJoinCode, joinErr, setJoinErr }) {
+  const myProfile = players.find(p => p.googleUid === user?.uid);
+  return (
+    <div style={S.root}>
+      <div style={S.hdr}>
+        <div style={S.logo}>5-MAN</div>
+        <div style={S.logoSub}>CAPTAIN AT THE CREEK</div>
+        {myProfile && <div style={{fontSize:11,color:"#4ade80",marginTop:4}}>👤 {myProfile.name}</div>}
+      </div>
+      <div style={S.card}>
+        <button style={S.btn} onClick={() => setScreen("newround")}>⛳ New Round</button>
+        <div style={S.sec}>Join a Round</div>
+        <div style={S.row}>
+          <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Game code (e.g. CREEK-42)"
+            value={joinCode} onChange={e => { setJoinCode(e.target.value.toUpperCase()); setJoinErr(""); }} />
+          <button style={S.btnSm} onClick={() => onJoinRound(joinCode)}>Join</button>
+        </div>
+        {joinErr && <div style={S.errBox}>{joinErr}</div>}
+        <button style={S.btnDark} onClick={() => setScreen("roster")}>👤 Player Roster</button>
+        <button style={S.btnDark} onClick={() => setScreen("history")}>📋 Round History</button>
+        <button style={S.btnDark} onClick={() => setScreen("stats")}>📊 Stats & Rankings</button>
+        <button style={S.btnDanger} onClick={signOut}>Sign Out</button>
+      </div>
+      {roundHistory.length > 0 && (
+        <div style={S.card}>
+          <div style={S.sec}>Last Round</div>
+          <div style={{fontSize:12,color:"#666",marginBottom:6}}>{roundHistory[0].courseData?.name} · {roundHistory[0].createdAt?.toDate?.()?.toLocaleDateString()}</div>
+          {(roundHistory[0].results||[]).sort((a,b)=>b.money-a.money).map((r,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{fontSize:14,color:i===0?"#f59e0b":"#e4ede4"}}>{r.name}</span>
+              <span style={{fontWeight:700,color:r.money>=0?"#4ade80":"#f87171"}}>{fmt$(r.money)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <NavBar screen="home" setScreen={setScreen} S={S} />
+    </div>
+  );
+}
+
+// ─── Spectate Screen ──────────────────────────────────────────────────────────
+function SpectateScreen({ S, round, holes, ledger, orderPlayers, currentHole, setScreen, fmt$ }) {
+  return (
+    <div style={S.root}>
+      <div style={S.gameHdr}>
+        <div style={{fontSize:20,fontWeight:700,color:"#c5e8c5"}}>HOLE {currentHole + 1}</div>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:11,color:"#555"}}>{round.courseData?.name}</div>
+          <div style={{fontSize:14,color:"#f59e0b",fontWeight:700}}>{round.gameCode}</div>
+        </div>
+        <div style={{fontSize:12,color:"#4ade80"}}>👁 Viewing</div>
+      </div>
+      <div style={S.ledgerStrip}>
+        {orderPlayers.map((p, oi) => (
+          <div key={oi} style={S.ledgerItem}>
+            <div style={{fontSize:10,color:"#555"}}>{p.name?.split(" ")[0]}</div>
+            <div style={{fontSize:13,fontWeight:700,color:ledger[oi]>=0?"#4ade80":"#f87171"}}>{fmt$(ledger[oi])}</div>
+          </div>
+        ))}
+      </div>
+      <div style={S.card}>
+        <div style={S.sec}>Hole History</div>
+        {holes.map(h => (
+          <div key={h.hole} style={{display:"flex",justifyContent:"space-between",marginBottom:6,padding:"6px 0",borderBottom:"1px solid #1a3a1a"}}>
+            <span style={{color:"#4ade80",fontWeight:700}}>H{h.hole}</span>
+            <span style={{color:"#aaa",fontSize:13}}>{orderPlayers[h.captainOI]?.name}{h.partner==="alone"?" 🦅":""}</span>
+            <span style={{color:h.winner==="none"?"#444":h.winner==="captain"?"#4ade80":"#f87171"}}>
+              {h.winner==="none"?"No blood":`${h.winner==="captain"?"Capt":"Field"} ${h.pts}pts`}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{padding:"0 12px"}}>
+        <button style={S.btnDark} onClick={() => setScreen("home")}>← Home</button>
+      </div>
+      <NavBar screen="spectate" setScreen={setScreen} S={S} />
+    </div>
+  );
+}
+
+// ─── Stats Screen ─────────────────────────────────────────────────────────────
+function StatsScreen({ S, players, setScreen }) {
+  const [tab, setTab] = useState("er"); // er | cer | wins | money
+
+  const ranked = [...players].filter(p => p.rounds > 0).sort((a, b) => {
+    if (tab === "er") {
+      const erA = (a.totalHoles||0) > 0 ? (a.totalMoney||0) / a.totalHoles : -999;
+      const erB = (b.totalHoles||0) > 0 ? (b.totalMoney||0) / b.totalHoles : -999;
+      return erB - erA;
+    }
+    if (tab === "cer") {
+      if ((a.captainHoles||0) < 10) return 1;
+      if ((b.captainHoles||0) < 10) return -1;
+      const cerA = (a.captainMoney||0) / a.captainHoles;
+      const cerB = (b.captainMoney||0) / b.captainHoles;
+      return cerB - cerA;
+    }
+    if (tab === "wins") return (b.wins||0) - (a.wins||0);
+    return (b.totalMoney||0) - (a.totalMoney||0);
+  });
+
+  return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>STATS & RANKINGS</div></div>
+      <div style={S.card}>
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          {[["er","Efficiency"],["cer","Captain ER"],["wins","Wins"],["money","Total $"]].map(([k,lbl]) => (
+            <button key={k} style={{...S.btnGhost,flex:1,fontSize:11,padding:"8px 4px",...(tab===k?{border:"1px solid #4ade80",color:"#4ade80"}:{})}}
+              onClick={() => setTab(k)}>{lbl}</button>
+          ))}
+        </div>
+        {ranked.length === 0 && <div style={{color:"#555",textAlign:"center",padding:20}}>No stats yet.</div>}
+        {ranked.map((p, i) => {
+          const er = (p.totalHoles||0) > 0 ? ((p.totalMoney||0) / p.totalHoles).toFixed(2) : "—";
+          const cer = (p.captainHoles||0) >= 10 ? ((p.captainMoney||0) / p.captainHoles).toFixed(2) : "< 10 holes";
+          const val = tab==="er" ? `$${er}/hole` : tab==="cer" ? `$${cer}/hole` : tab==="wins" ? `${p.wins||0} wins` : fmt$(p.totalMoney||0);
+          return (
+            <div key={p.id} style={{...S.orderRow,cursor:"default",borderLeft:i===0?"3px solid #f59e0b":"3px solid #1a3a1a"}}>
+              <span style={{color:i===0?"#f59e0b":"#4ade80",fontWeight:700,fontSize:18,minWidth:24}}>{i+1}</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15}}>{p.name}</div>
+                <div style={{fontSize:11,color:"#666"}}>{p.rounds||0} rounds · {p.captainHoles||0} captain holes</div>
+              </div>
+              <span style={{fontSize:15,fontWeight:700,color:"#e4ede4"}}>{val}</span>
+            </div>
+          );
+        })}
+      </div>
+      <NavBar screen="stats" setScreen={setScreen} S={S} />
+    </div>
+  );
+}
+
+// ─── History Screen ───────────────────────────────────────────────────────────
+function HistoryScreen({ S, roundHistory, players, loadHistory, setScreen }) {
+  useEffect(() => { loadHistory(); }, []);
+  return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>HISTORY</div></div>
+      {roundHistory.length === 0 ? (
+        <div style={S.card}><div style={{color:"#555",textAlign:"center",padding:20}}>No rounds yet.</div></div>
+      ) : roundHistory.map(r => (
+        <div key={r.id} style={S.card}>
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <span style={{color:"#4ade80",fontSize:13}}>{r.completedAt?.toDate?.()?.toLocaleDateString() || r.date}</span>
+            <span style={{fontSize:12,color:"#555"}}>${r.dpp}/pt · {r.gameCode}</span>
+          </div>
+          <div style={{fontSize:12,color:"#777",marginBottom:8}}>{r.courseData?.name} — {r.courseData?.tee} tees</div>
+          {(r.results||[]).sort((a,b)=>b.money-a.money).map((p,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{fontSize:14,color:i===0?"#f59e0b":"#e4ede4"}}>{p.name}</span>
+              <span style={{fontWeight:700,color:p.money>=0?"#4ade80":"#f87171"}}>{fmt$(p.money)}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+      <NavBar screen="history" setScreen={setScreen} S={S} />
+    </div>
+  );
+}
+
+// ─── Roster Screen ────────────────────────────────────────────────────────────
+function RosterScreen({ S, players, currentUser, onSave, onDelete, setScreen }) {
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ name:"", index:"", paymentMethod:"venmo", paymentHandle:"" });
+
+  function startEdit(p) {
+    setEditing(p?.id || "new");
+    setForm(p ? { name:p.name, index:p.lastIndex||p.index||"", paymentMethod:p.paymentMethod||"venmo", paymentHandle:p.paymentHandle||"" } : { name:"", index:"", paymentMethod:"venmo", paymentHandle:"" });
+  }
+
+  return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>ROSTER</div></div>
+      <div style={S.card}>
+        <div style={S.sec}>Players ({players.length})</div>
+        {players.map(p => (
+          <div key={p.id} style={{...S.orderRow,cursor:"default"}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15}}>{p.name}</div>
+              <div style={{fontSize:11,color:"#666"}}>Idx {p.lastIndex||p.index} · {p.rounds||0} rds · {p.wins||0}W · {fmt$(p.totalMoney||0)}</div>
+              {p.paymentMethod && p.paymentMethod!=="cash" && (
+                <div style={{fontSize:11,color:"#4ade80"}}>{PAYMENT_LABELS[p.paymentMethod]}: {p.paymentHandle}</div>
+              )}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>
+              <a href="https://www.ghin.com/golfers/lookup" target="_blank" rel="noreferrer" style={{fontSize:11,color:"#4ade80",textDecoration:"none"}}>GHIN</a>
+              <button style={{...S.btnGhost,fontSize:11,padding:"4px 8px"}} onClick={() => startEdit(p)}>Edit</button>
+              <button style={{...S.btnGhost,fontSize:11,padding:"4px 8px"}} onClick={() => onDelete(p.id)}>✕</button>
+            </div>
+          </div>
+        ))}
+
+        {editing ? (
+          <>
+            <div style={S.sec}>{editing==="new"?"Add Player":"Edit Player"}</div>
+            <input style={S.inp} placeholder="Full name" value={form.name} onChange={e => setForm({...form,name:e.target.value})} />
+            <input style={S.inp} placeholder="Handicap Index" type="number" step="0.1" value={form.index} onChange={e => setForm({...form,index:e.target.value})} />
+            <div style={S.sec}>Payment Method</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+              {PAYMENT_METHODS.map(m => (
+                <button key={m} style={{...S.btnGhost,fontSize:12,padding:"7px 10px",...(form.paymentMethod===m?{border:"1px solid #4ade80",color:"#4ade80"}:{})}}
+                  onClick={() => setForm({...form,paymentMethod:m,paymentHandle:""})}>
+                  {PAYMENT_LABELS[m]}
+                </button>
+              ))}
+            </div>
+            {form.paymentMethod!=="cash"&&form.paymentMethod!=="applepay"&&(
+              <input style={S.inp} placeholder={PAYMENT_PLACEHOLDERS[form.paymentMethod]||"Handle"} value={form.paymentHandle}
+                onChange={e => setForm({...form,paymentHandle:e.target.value})} />
+            )}
+            <div style={{display:"flex",gap:8}}>
+              <button style={{...S.btn,flex:1}} onClick={() => {
+                const existing = editing !== "new" ? (players.find(r => r.id === editing) || {}) : {};
+                onSave({
+                  ...existing,
+                  id: editing === "new" ? undefined : editing,
+                  name: form.name,
+                  lastIndex: form.index,
+                  index: form.index,
+                  paymentMethod: form.paymentMethod,
+                  paymentHandle: form.paymentHandle,
+                  googleUid: editing === "new" ? currentUser?.uid : existing.googleUid,
+                });
+                setEditing(null);
+              }}>Save</button>
+              <button style={{...S.btnDark,flex:1,marginTop:0}} onClick={() => setEditing(null)}>Cancel</button>
+            </div>
+          </>
+        ) : (
+          <button style={S.btn} onClick={() => startEdit(null)}>+ Add Player</button>
+        )}
+      </div>
+      <NavBar screen="roster" setScreen={setScreen} S={S} />
+    </div>
+  );
+}
+
+// ─── Summary Screen ───────────────────────────────────────────────────────────
+function SummaryScreen({ S, round, holes, ledger, orderPlayers, players, pressLog, setScreen, fmt$ }) {
+  const sorted = [...orderPlayers].map((p,i) => ({...p,oi:i,money:ledger[i]||0})).sort((a,b)=>b.money-a.money);
+  const today = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const note = `5-Man Captain · ${round?.courseData?.name||'Golf'} · ${today}`;
+  const playersWithPayment = orderPlayers.map((p, i) => {
+    const rp = players.find(rp => rp.id === round?.playerOrder?.[i]);
+    return { ...p, oi:i, paymentMethod: rp?.paymentMethod||'cash', paymentHandle: rp?.paymentHandle||'' };
+  });
+  const settlements = computeSettlement(playersWithPayment, ledger);
+
+  return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>FINAL</div><div style={S.logoSub}>5-MAN CAPTAIN</div></div>
+      <div style={S.card}>
+        <div style={S.sec}>Final Standings — {round?.courseData?.name}</div>
+        {sorted.map((p,rank) => (
+          <div key={p.oi} style={{...S.orderRow,cursor:"default",borderLeft:rank===0?"3px solid #f59e0b":rank===sorted.length-1?"3px solid #f87171":"3px solid #1a3a1a"}}>
+            <span style={{color:rank===0?"#f59e0b":"#4ade80",fontWeight:700,fontSize:18,minWidth:24}}>{rank+1}</span>
+            <span style={{flex:1,fontSize:16}}>{p.name}</span>
+            <span style={{fontSize:20,fontWeight:700,color:p.money>=0?"#4ade80":"#f87171"}}>{fmt$(p.money)}</span>
+          </div>
+        ))}
+      </div>
+      <div style={S.card}>
+        <div style={S.sec}>Settle Up</div>
+        {settlements.length===0?<div style={{color:"#555",textAlign:"center",padding:12}}>All square!</div>:
+          settlements.map((txn,i) => {
+            const link = paymentLink(txn.to.paymentMethod, txn.to.paymentHandle, txn.amount, note);
+            const colors = { venmo:'#3D95CE', cashapp:'#00D632', paypal:'#003087', zelle:'#6D1ED4' };
+            const btnLabels = { venmo:'Pay Venmo', cashapp:'Pay Cash App', paypal:'Pay PayPal' };
+            return (
+              <div key={i} style={{background:"#080d08",borderRadius:10,padding:"12px 14px",marginBottom:8,border:"1px solid #1a3a1a"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div>
+                    <span style={{fontSize:15,color:"#f87171",fontWeight:700}}>{txn.from.name}</span>
+                    <span style={{fontSize:13,color:"#555",margin:"0 8px"}}>→</span>
+                    <span style={{fontSize:15,color:"#4ade80",fontWeight:700}}>{txn.to.name}</span>
+                  </div>
+                  <span style={{fontSize:20,fontWeight:700}}>${txn.amount}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:11,color:"#555"}}>{txn.to.paymentMethod==="cash"?"Cash":txn.to.paymentHandle}</span>
+                  {txn.to.paymentMethod==="cash"?<span style={{fontSize:12,color:"#888",fontStyle:"italic"}}>Cash</span>:
+                    link?<a href={link} style={{background:colors[txn.to.paymentMethod]||"#1a5c1a",color:"#fff",borderRadius:8,padding:"8px 14px",fontSize:13,textDecoration:"none",fontFamily:"'Georgia',serif",fontWeight:700}}>
+                      {btnLabels[txn.to.paymentMethod]||"Pay"}
+                    </a>:<span style={{fontSize:12,color:"#888"}}>Open {PAYMENT_LABELS[txn.to.paymentMethod]} manually</span>
+                  }
+                </div>
+              </div>
+            );
+          })
+        }
+        <div style={{fontSize:11,color:"#444",marginTop:8,textAlign:"center"}}>{note}</div>
+      </div>
+      {(pressLog||[]).length>0&&(
+        <div style={S.card}>
+          <div style={S.sec}>Presses</div>
+          {pressLog.map((pl,i) => (
+            <div key={i} style={{fontSize:13,color:"#aaa",marginBottom:4}}>
+              H{pl.hole} — {orderPlayers[pl.presser]?.name} pressed: ${pl.fromDpp}→${pl.toDpp}/pt
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={S.card}>
+        <div style={S.sec}>Hole by Hole</div>
+        {holes.map(h => (
+          <div key={h.hole} style={{marginBottom:8,paddingBottom:8,borderBottom:"1px solid #1a3a1a"}}>
+            <div style={{display:"flex",justifyContent:"space-between"}}>
+              <span style={{color:"#4ade80",fontSize:13,fontWeight:700}}>Hole {h.hole}</span>
+              <span style={{fontSize:11,color:"#555"}}>${h.dpp}/pt</span>
+            </div>
+            <div style={{fontSize:12,color:"#777",marginTop:2}}>
+              Capt: {orderPlayers[h.captainOI]?.name}{h.partner==="alone"?" 🦅 Lone":h.partner!==null?` + ${orderPlayers[h.partnerOI]?.name}`:""}
+            </div>
+            <div style={{fontSize:13,marginTop:2,color:h.winner==="none"?"#444":h.winner==="captain"?"#4ade80":"#f87171"}}>
+              {h.winner==="none"?"No blood":`${h.winner==="captain"?"Capt's Team":"Field"} — ${h.pts} pts`}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{padding:"0 12px 80px"}}>
+        <button style={S.btn} onClick={() => setScreen("home")}>← Home</button>
+      </div>
+      <NavBar screen="summary" setScreen={setScreen} S={S} />
+    </div>
+  );
+}
+
+// ─── New Round Screen ─────────────────────────────────────────────────────────
+function NewRoundScreen({ S, players, courses, user, onSaveCourse, onDeleteCourse, onStart }) {
+  const [step, setStep] = useState("players");
+  const [selPlayers, setSelPlayers] = useState(Array(5).fill(null));
+  const [dpp, setDpp] = useState("");
+  const [pressMode, setPressMode] = useState("custom");
+  const [lightningRound, setLightningRound] = useState("16");
+  const [courseData, setCourseData] = useState(null);
+  const [manualMode, setManualMode] = useState(false);
+  const [manual, setManual] = useState({ name:"", tee:"White", rating:"", slope:"", par:"72", holeHdcps:Array(18).fill(""), holePars:Array(18).fill("4") });
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [searchErr, setSearchErr] = useState("");
+  const [selectedClub, setSelectedClub] = useState(null);
+  const [apiTees, setApiTees] = useState([]);
+
+  const usedIds = selPlayers.filter(Boolean).map(p => p.id);
+  const availablePlayers = players.filter(p => !usedIds.includes(p.id));
+
+  async function doSearch() {
+    if (!query.trim()) return;
+    setSearching(true); setResults([]); setSearchErr("");
+    try {
+      const r = await fetch(`${GOLF_API}/courses?name=${encodeURIComponent(query)}`, { headers: { Authorization: `Key ${API_KEY}` } });
+      if (!r.ok) { setSearchErr(`API error ${r.status}`); setSearching(false); return; }
+      const d = await r.json();
+      const list = d.courses || d.data || (Array.isArray(d) ? d : []);
+      list.length ? setResults(list) : setSearchErr("Not found — try manual entry.");
+    } catch { setSearchErr("Search failed — try manual entry."); }
+    setSearching(false);
+  }
+
+  async function pickClub(club) {
+    setSelectedClub(club); setResults([]);
+    try {
+      const r = await fetch(`${GOLF_API}/courses/${club.id||club.course_id}`, { headers: { Authorization: `Key ${API_KEY}` } });
+      if (!r.ok) { setApiTees([]); return; }
+      const d = await r.json();
+      const c = d.course || d;
+      setApiTees(c.tees || c.tee_boxes || []);
+    } catch { setApiTees([]); }
+  }
+
+  function pickApiTee(tee) {
+    const holes = tee.holes || [];
+    const holeHdcps = holes.map(h => String(h.handicap||""));
+    const holePars = holes.map(h => String(h.par||"4"));
+    const par = holePars.reduce((s,p) => s+(parseInt(p)||4), 0);
+    setCourseData({ name:selectedClub.club_name||selectedClub.name, tee:tee.tee_name, rating:String(tee.course_rating||""), slope:String(tee.slope_rating||""), par:String(par), holeHdcps, holePars });
+  }
+
+  const cd = manualMode ? manual : courseData;
+  const hdcpPreview = cd && selPlayers.every(Boolean) ? computeHdcpInfo(cd, selPlayers) : null;
+
+  if (step === "players") return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>NEW ROUND</div></div>
+      <div style={S.card}>
+        <div style={S.sec}>Players — Enter in Tee Order</div>
+        <div style={{fontSize:12,color:"#f59e0b",background:"#100a00",border:"1px solid #2a1a00",borderRadius:8,padding:"9px 12px",marginBottom:12}}>
+          ⚠️ Select players 1–5 in tee order. Player 1 = Captain hole 1.
+        </div>
+        {selPlayers.map((p, i) => (
+          <div key={i} style={{marginBottom:10}}>
+            <div style={{fontSize:11,color:"#4ade80",marginBottom:4}}>#{i+1} in tee order</div>
+            {p ? (
+              <div style={{...S.orderRow,cursor:"default"}}>
+                <span style={{flex:1,fontSize:14}}>{p.name}</span>
+                <span style={{fontSize:12,color:"#4ade80"}}>Idx {p.lastIndex||p.index}</span>
+                <button style={{...S.btnGhost,fontSize:11,padding:"4px 8px"}} onClick={() => { const np=[...selPlayers]; np[i]=null; setSelPlayers(np); }}>✕</button>
+              </div>
+            ) : (
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {players.filter(pl => !selPlayers.filter((_,si)=>si!==i).some(sp=>sp?.id===pl.id)).map(pl => (
+                  <button key={pl.id} style={{...S.btnGhost,fontSize:13,padding:"8px 12px"}}
+                    onClick={() => { const np=[...selPlayers]; np[i]=pl; setSelPlayers(np); }}>
+                    {pl.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        <div style={S.sec}>Dollar Per Point</div>
+        <input style={S.inp} placeholder="e.g. 3" type="number" step="0.5" value={dpp} onChange={e => setDpp(e.target.value)} />
+        <div style={S.sec}>Press Style</div>
+        <div style={S.row}>
+          {[["custom","Custom"],["increment","Fixed +"],["double","Double"]].map(([k,lbl]) => (
+            <button key={k} style={{...S.btnGhost,flex:1,fontSize:12,...(pressMode===k?{border:"1px solid #4ade80",color:"#4ade80"}:{})}}
+              onClick={() => setPressMode(k)}>{lbl}</button>
+          ))}
+        </div>
+        <div style={S.sec}>Lightning Round</div>
+        <div style={S.row}>
+          {[["16","Holes 16,17,18"],["14","Holes 14,17,18"]].map(([k,lbl]) => (
+            <button key={k} style={{...S.btnGhost,flex:1,fontSize:13,...(lightningRound===k?{border:"1px solid #4ade80",color:"#4ade80"}:{})}}
+              onClick={() => setLightningRound(k)}>{lbl}</button>
+          ))}
+        </div>
+        <button style={{...S.btn,opacity:selPlayers.every(Boolean)&&dpp?1:0.4}}
+          onClick={() => selPlayers.every(Boolean)&&dpp&&setStep("course")}>
+          Next: Course →
+        </button>
+        <button style={S.btnDark} onClick={() => setStep("home")}>← Home</button>
+      </div>
+    </div>
+  );
+
+  if (step === "course") return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>SELECT COURSE</div></div>
+      <div style={S.card}>
+        {courses.length > 0 && !courseData && !manualMode && (
+          <>
+            <div style={S.sec}>Saved Courses</div>
+            {courses.map(c => (
+              <div key={c.id} style={{...S.orderRow,cursor:"pointer"}} onClick={() => setCourseData(c)}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,color:"#e4ede4"}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"#666"}}>{c.tee} — Rtg {c.rating} / Slp {c.slope}</div>
+                </div>
+                <button style={{...S.btnGhost,fontSize:11,padding:"4px 8px"}} onClick={e => { e.stopPropagation(); onDeleteCourse(c.id); }}>✕</button>
+              </div>
+            ))}
+            <div style={{borderBottom:"1px solid #1a3a1a",margin:"10px 0"}} />
+          </>
+        )}
+        {!manualMode ? (
+          <>
+            <div style={S.sec}>Find Course</div>
+            <div style={S.row}>
+              <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Search course…" value={query}
+                onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key==="Enter"&&doSearch()} />
+              <button style={S.btnSm} onClick={doSearch}>{searching?"…":"Search"}</button>
+            </div>
+            {searchErr && <div style={S.errBox}>{searchErr}</div>}
+            {results.length>0&&!selectedClub&&results.slice(0,8).map((c,i) => (
+              <div key={c.id||i} style={{...S.orderRow,cursor:"pointer"}} onClick={() => pickClub(c)}>
+                <div>
+                  <div style={{fontSize:14,color:"#e4ede4"}}>{c.club_name||c.name}</div>
+                  <div style={{fontSize:11,color:"#666"}}>{c.city}{c.state?`, ${c.state}`:""}</div>
+                </div>
+              </div>
+            ))}
+            {selectedClub&&apiTees.length>0&&(
+              <>
+                <div style={{fontSize:13,color:"#4ade80",marginBottom:8}}>✓ {selectedClub.club_name||selectedClub.name}</div>
+                <div style={S.sec}>Select Tees</div>
+                {apiTees.map(t => (
+                  <div key={t.tee_name} style={{...S.orderRow,cursor:"pointer",border:courseData?.tee===t.tee_name?"1px solid #4ade80":"1px solid #1a3a1a"}}
+                    onClick={() => pickApiTee(t)}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:14,color:"#e4ede4"}}>{t.tee_name}</div>
+                      <div style={{fontSize:11,color:"#666"}}>Rtg {t.course_rating} / Slp {t.slope_rating}</div>
+                    </div>
+                    {courseData?.tee===t.tee_name&&<span style={{color:"#4ade80"}}>✓</span>}
+                  </div>
+                ))}
+              </>
+            )}
+            <div style={{display:"flex",gap:8,marginTop:10}}>
+              <button style={{...S.btnDark,flex:1,marginTop:0}} onClick={() => setStep("players")}>← Back</button>
+              {courseData&&<button style={{...S.btn,flex:2,marginTop:0}} onClick={() => setStep("confirm")}>Next →</button>}
+            </div>
+            <button style={{...S.btnGhost,width:"100%",marginTop:8}} onClick={() => setManualMode(true)}>Enter manually</button>
+          </>
+        ) : (
+          <>
+            <div style={S.sec}>Manual Entry</div>
+            <input style={S.inp} placeholder="Course name" value={manual.name} onChange={e => setManual({...manual,name:e.target.value})} />
+            <div style={S.row}>
+              {["Black","Blue","White","Gold","Red"].map(t => (
+                <button key={t} style={{...S.teeBtn,...(manual.tee===t?S.teeBtnOn:{})}} onClick={() => setManual({...manual,tee:t})}>{t}</button>
+              ))}
+            </div>
+            <div style={S.row}>
+              <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Rating" type="number" value={manual.rating} onChange={e => setManual({...manual,rating:e.target.value})} />
+              <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Slope" type="number" value={manual.slope} onChange={e => setManual({...manual,slope:e.target.value})} />
+              <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Par" type="number" value={manual.par} onChange={e => setManual({...manual,par:e.target.value})} />
+            </div>
+            <div style={S.sec}>Hole Handicap Ratings</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:3}}>
+              {Array.from({length:18},(_,i) => (
+                <div key={i} style={S.holeCell}>
+                  <div style={{fontSize:9,color:"#4ade80"}}>H{i+1}</div>
+                  <input style={{width:"100%",background:"transparent",border:"none",borderTop:"1px solid #1a3a1a",color:"#e4ede4",padding:"3px 0",fontSize:11,textAlign:"center",outline:"none",fontFamily:"'Georgia',serif",marginTop:2}}
+                    type="number" value={manual.holeHdcps[i]}
+                    onChange={e => { const a=[...manual.holeHdcps]; a[i]=e.target.value; setManual({...manual,holeHdcps:a}); }} />
+                </div>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:12}}>
+              <button style={{...S.btnDark,flex:1,marginTop:0}} onClick={() => setManualMode(false)}>← Back</button>
+              <button style={{...S.btn,flex:2,marginTop:0}} onClick={async () => { await onSaveCourse(manual); setCourseData(manual); setStep("confirm"); }}>
+                Save & Continue →
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  if (step === "confirm") return (
+    <div style={S.root}>
+      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CONFIRM ROUND</div></div>
+      <div style={S.card}>
+        <div style={S.sec}>Course Handicaps — {cd?.name} ({cd?.tee})</div>
+        <div style={{fontSize:11,color:"#555",marginBottom:10}}>Low: {hdcpPreview?.low} — strokes relative to this.</div>
+        {selPlayers.map((p,i) => (
+          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#080d08",borderRadius:8,padding:"10px 12px",marginBottom:6}}>
+            <div>
+              <span style={{fontSize:15}}>{i+1}. {p.name}</span>
+              <span style={{fontSize:11,color:"#888",marginLeft:8}}>Idx {p.lastIndex||p.index}</span>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <span style={{fontSize:15,color:"#4ade80",fontWeight:700}}>Hdcp {hdcpPreview?.courseHdcps[i]}</span>
+              {hdcpPreview?.extras[i]>0&&<div style={{fontSize:11,color:"#f59e0b"}}>+{hdcpPreview.extras[i]} stroke{hdcpPreview.extras[i]>1?"s":""}</div>}
+            </div>
+          </div>
+        ))}
+        <div style={{background:"#080d08",borderRadius:8,padding:"10px 12px",marginTop:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+            <span style={{color:"#888"}}>$/pt</span><span style={{color:"#e4ede4"}}>${dpp}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+            <span style={{color:"#888"}}>Press</span><span style={{color:"#e4ede4",textTransform:"capitalize"}}>{pressMode}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <span style={{color:"#888"}}>Lightning</span><span style={{color:"#f59e0b"}}>⚡ Holes {lightningRound==="14"?"14,17,18":"16,17,18"}</span>
+          </div>
+        </div>
+        <button style={S.btn} onClick={() => onStart({
+          playerOrder: selPlayers.map(p => p.id),
+          players: selPlayers,
+          orderPlayers: selPlayers,
+          dpp: parseFloat(dpp),
+          pressMode,
+          lightningRound,
+        }, cd)}>
+          ⛳ Start Round
+        </button>
+        <button style={S.btnDark} onClick={() => setStep("course")}>← Back</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit Hole Form ───────────────────────────────────────────────────────────
+function EditHoleForm({ h, hIdx, orderPlayers, onSave, onCancel, S }) {
+  const [winner, setWinner] = useState(h.winner);
+  const [pts, setPts] = useState(h.pts===14?7:h.pts);
+  const captTeamOI = h.partner==="alone" ? [h.captainOI] : [h.captainOI, h.partnerOI];
+  const fieldOI = [0,1,2,3,4].filter(i => !captTeamOI.includes(i));
+  return (
+    <div style={{background:"#0a1a0a",border:"1px solid #4ade80",borderRadius:8,padding:"12px",marginBottom:8}}>
+      <div style={{fontSize:13,color:"#4ade80",fontWeight:700,marginBottom:10}}>
+        Editing Hole {h.hole} — {orderPlayers[h.captainOI]?.name}{h.partner==="alone"?" 🦅 Lone":h.partnerOI!==null?` + ${orderPlayers[h.partnerOI]?.name}`:""}
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:10}}>
+        {[{k:"captain",lbl:"Captain's Team",sub:captTeamOI.map(oi=>orderPlayers[oi]?.name).join(" & ")},
+          {k:"field",lbl:"Field",sub:fieldOI.map(oi=>orderPlayers[oi]?.name).join(" & ")},
+          {k:"none",lbl:"No Blood",sub:""}].map(({k,lbl,sub}) => (
+          <button key={k} style={{flex:k==="none"?0.7:1,background:winner===k?"#162616":"#0a130a",border:winner===k?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:winner===k?"#e4ede4":"#bbb",padding:"10px 4px",fontSize:11,cursor:"pointer",fontFamily:"'Georgia',serif",textAlign:"center"}}
+            onClick={() => { setWinner(k); if(k==="none")setPts(null); }}>
+            <div style={{fontWeight:700}}>{lbl}</div>
+            {sub&&<div style={{fontSize:9,color:"#666",marginTop:2}}>{sub}</div>}
+          </button>
+        ))}
+      </div>
+      {winner&&winner!=="none"&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:10}}>
+          {[1,2,3,4,5,6,7].map(p => (
+            <button key={p} style={{background:pts===p?"#162616":"#0a130a",border:pts===p?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:pts===p?"#e4ede4":"#bbb",padding:"11px 2px",fontSize:18,cursor:"pointer",fontFamily:"'Georgia',serif",textAlign:"center"}}
+              onClick={() => setPts(p)}>
+              {p}{p===7&&<div style={{fontSize:8,color:"#f59e0b",marginTop:1}}>×2</div>}
+            </button>
+          ))}
+        </div>
+      )}
+      <div style={{display:"flex",gap:8}}>
+        <button style={{flex:2,background:"linear-gradient(135deg,#1a5c1a,#267a26)",border:"none",borderRadius:8,color:"#e4ede4",padding:"11px",fontSize:14,fontFamily:"'Georgia',serif",cursor:"pointer",opacity:(winner==="none"||pts)?1:0.4}}
+          onClick={() => { if(winner==="none"||pts) onSave(hIdx,{winner,pts:pts===7?14:pts}); }}>
+          Save & Recalculate
+        </button>
+        <button style={{flex:1,background:"#111a11",border:"1px solid #1a3a1a",borderRadius:8,color:"#666",padding:"11px",fontSize:13,fontFamily:"'Georgia',serif",cursor:"pointer"}}
+          onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Nav Bar ──────────────────────────────────────────────────────────────────
+function NavBar({ screen, setScreen, S }) {
+  const tabs = [["home","🏠","Home"],["newround","⛳","Round"],["history","📋","History"],["stats","📊","Stats"],["roster","👤","Roster"]];
+  return (
+    <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#0a130a",borderTop:"1px solid #1a3a1a",display:"flex",zIndex:100}}>
+      {tabs.map(([s,icon,lbl]) => (
+        <button key={s} style={{flex:1,background:"transparent",border:"none",borderTop:screen===s?"2px solid #4ade80":"2px solid transparent",color:screen===s?"#4ade80":"#444",padding:"10px 4px 8px",fontSize:10,cursor:"pointer",fontFamily:"'Georgia',serif",letterSpacing:0.5}}
+          onClick={() => setScreen(s)}>
+          <div style={{fontSize:16}}>{icon}</div>{lbl}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Mount ────────────────────────────────────────────────────────────────────
+document.getElementById('loading').style.display = 'none';
+const container = document.getElementById('root');
+const root = ReactDOM.createRoot(container);
+root.render(React.createElement(FiveManCaptain));
+
+  </script>
+
+</body>
+</html>
