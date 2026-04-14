@@ -2,1699 +2,1225 @@
 
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a1a0a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="5-Man Captain" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+  <meta name="theme-color" content="#0a1a0a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="5-Man Captain"/>
   <title>5-Man Captain at the Creek</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    html, body { height:100%; background:#080d08; }
-    #root { min-height:100vh; background:#080d08; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
-    #loading { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:#4ade80; font-family:Georgia,serif; font-size:18px; text-align:center; }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;background:#080d08;font-family:'Georgia',serif;color:#e4ede4}
+    #app{min-height:100vh;max-width:480px;margin:0 auto;padding-bottom:64px;padding-top:env(safe-area-inset-top)}
+    .hdr{background:linear-gradient(160deg,#162916,#0a1a0a);border-bottom:2px solid #1e4a1e;padding:20px 20px 14px;text-align:center}
+    .logo{font-size:32px;font-weight:700;letter-spacing:10px;color:#c5e8c5;text-shadow:0 0 30px #4ade8050}
+    .sub{font-size:11px;letter-spacing:6px;color:#4ade80;margin-top:2px}
+    .card{margin:12px;background:#0f1a0f;border:1px solid #1a3a1a;border-radius:12px;padding:14px 13px}
+    .sec{font-size:10px;letter-spacing:3px;color:#4ade80;text-transform:uppercase;margin-bottom:9px;margin-top:4px;border-bottom:1px solid #1a3a1a;padding-bottom:5px}
+    input{width:100%;background:#0a130a;border:1px solid #1e3a1e;border-radius:8px;color:#e4ede4;padding:10px 12px;font-size:15px;margin-bottom:8px;outline:none;font-family:'Georgia',serif;-webkit-appearance:none}
+    .btn{width:100%;background:linear-gradient(135deg,#1a5c1a,#267a26);border:none;border-radius:8px;color:#e4ede4;padding:12px 16px;font-size:15px;font-family:'Georgia',serif;cursor:pointer;margin-top:8px;display:block;text-align:center}
+    .btnd{width:100%;background:#111a11;border:1px solid #1a3a1a;border-radius:8px;color:#666;padding:12px 16px;font-size:14px;font-family:'Georgia',serif;cursor:pointer;margin-top:6px;display:block;text-align:center}
+    .btng{background:transparent;border:1px solid #1e3a1e;border-radius:8px;color:#777;padding:9px 13px;font-size:13px;font-family:'Georgia',serif;cursor:pointer}
+    .btnsm{background:linear-gradient(135deg,#1a5c1a,#267a26);border:none;border-radius:8px;color:#e4ede4;padding:9px 14px;font-size:13px;font-family:'Georgia',serif;cursor:pointer}
+    .err{font-size:13px;color:#f87171;margin:7px 0;padding:8px 10px;background:#1a0808;border-radius:8px}
+    .row{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+    .ledger{display:flex;background:#0a130a;border-bottom:1px solid #1a3a1a;overflow-x:auto}
+    .li{flex:1;padding:7px 3px;text-align:center;border-right:1px solid #1a3a1a;min-width:68px}
+    .gamehdr{background:linear-gradient(160deg,#162916,#0a1a0a);padding:10px 14px;border-bottom:2px solid #1e4a1e;display:flex;justify-content:space-between;align-items:center}
+    .orow{display:flex;align-items:center;background:#080d08;border:1px solid #1a3a1a;border-radius:8px;padding:11px 13px;margin-bottom:7px;gap:10px}
+    .navbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#0a130a;border-top:1px solid #1a3a1a;display:flex;z-index:100}
+    .nb{flex:1;background:transparent;border:none;border-top:2px solid transparent;color:#444;padding:10px 4px 8px;font-size:10px;cursor:pointer;font-family:'Georgia',serif;letter-spacing:.5px}
+    .nb.on{color:#4ade80;border-top-color:#4ade80}
+    .pickbtn{flex:1;min-width:47%;background:#0a130a;border:1px solid #1e3a1e;border-radius:8px;color:#bbb;padding:13px 8px;font-size:14px;cursor:pointer;font-family:'Georgia',serif;margin-bottom:6px;text-align:center}
+    .pickbtn.on{background:#162616;border:2px solid #4ade80;color:#e4ede4}
+    .winbtn{flex:1;background:#0a130a;border:1px solid #1e3a1e;border-radius:8px;color:#bbb;padding:13px 6px;font-size:12px;cursor:pointer;font-family:'Georgia',serif;text-align:center}
+    .winbtn.on{background:#162616;border:2px solid #4ade80;color:#e4ede4}
+    .ptbtn{background:#0a130a;border:1px solid #1e3a1e;border-radius:8px;color:#bbb;padding:13px 4px;font-size:20px;cursor:pointer;font-family:'Georgia',serif;text-align:center}
+    .ptbtn.on{background:#162616;border:2px solid #4ade80;color:#e4ede4}
+    .mbox{background:#080d08;border-radius:8px;padding:10px 12px;margin:10px 0;font-size:13px}
+    .press{background:#100a00;border:1px solid #2a1a00;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+    .loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#4ade80;font-size:18px;text-align:center}
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <div id="loading">⛳ Loading 5-Man Captain...</div>
+<div id="app"><div class="loading">⛳ Loading...</div></div>
 
-  <!-- Firebase SDKs -->
+<!-- Firebase -->
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- auth not needed for PIN login -->
-
-  <!-- React -->
-
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-
-  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
-
-  <!-- Firebase init (plain JS, no JSX needed) -->
-
-  <script>
-// ─── Firebase Config ──────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyD_Xp8LrkX8BsJ4E65LZVPAhidDXxQyzCw",
-  authDomain: "man-captain-scoring.firebaseapp.com",
-  databaseURL: "https://man-captain-scoring-default-rtdb.firebaseio.com",
-  projectId: "man-captain-scoring",
-  storageBucket: "man-captain-scoring.firebasestorage.app",
-  messagingSenderId: "544174327153",
-  appId: "1:544174327153:web:1e8493a7ceacf2741e62d0"
-};
-
-// ─── Initialize ───────────────────────────────────────────────────────────────
-const fbApp = firebase.initializeApp(firebaseConfig);
+<script>
+// ── Firebase ──────────────────────────────────────────────────────────────────
+const fb = firebase.initializeApp({
+  apiKey:"AIzaSyD_Xp8LrkX8BsJ4E65LZVPAhidDXxQyzCw",
+  authDomain:"man-captain-scoring.firebaseapp.com",
+  projectId:"man-captain-scoring",
+  storageBucket:"man-captain-scoring.firebasestorage.app",
+  messagingSenderId:"544174327153",
+  appId:"1:544174327153:web:1e8493a7ceacf2741e62d0"
+});
 const db = firebase.firestore();
-const auth = firebase.auth();
-const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-// ─── PIN Auth (no OAuth needed) ───────────────────────────────────────────────
-async function pinSignIn(playerId, pin) {
-  const snap = await db.collection("players").doc(playerId).get();
-  if (!snap.exists) return { error: "Player not found" };
-  const data = snap.data();
-  if (!data.pin) return { error: "No PIN set" };
-  if (data.pin !== pin) return { error: "Wrong PIN" };
-  return { user: { uid: playerId, name: data.name } };
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function $(id){return document.getElementById(id)}
+function fmt(n){if(!n||n===0)return'$0';const r=Math.round(n);return(r<0?'-$':'+$')+Math.abs(r)}
+function calcHdcp(idx,slope,rating,par){return Math.round(parseFloat(idx||0)*(parseFloat(slope||113)/113)+(parseFloat(rating||72)-parseFloat(par||72)))}
+function strokeHoles(extra,hdcps){
+  if(extra<=0)return[];
+  return [...hdcps].map((h,i)=>({hole:i+1,hdcp:parseInt(h)||i+1})).sort((a,b)=>a.hdcp-b.hdcp).slice(0,extra).map(h=>h.hole);
 }
-
-async function pinRegister(name, pin) {
-  // Check if name already exists
-  const snap = await db.collection("players").where("name", "==", name).limit(1).get();
-  if (!snap.empty) {
-    // Update existing player with PIN
-    const id = snap.docs[0].id;
-    await db.collection("players").doc(id).update({ pin });
-    return { user: { uid: id, name } };
+function whosBehind(pis,ledger,hdcps){
+  const[a,b]=pis;
+  if(ledger[a]!==ledger[b])return ledger[a]<ledger[b]?[a,b]:[b,a];
+  return(hdcps?(hdcps[a]||0):(0))>=(hdcps?(hdcps[b]||0):(0))?[a,b]:[b,a];
+}
+function splitWin(total,pis,ledger,hdcps){
+  const c=Math.round(total*100);const hi=Math.ceil(c/200);const lo=Math.floor(c/200);
+  const[f,o]=whosBehind(pis,ledger,hdcps);return{[f]:hi,[o]:lo};
+}
+function splitLoss(total,pis,ledger,hdcps){
+  const c=Math.round(total*100);const hi=Math.ceil(c/200);const lo=Math.floor(c/200);
+  const[f,o]=whosBehind(pis,ledger,hdcps);return{[f]:lo,[o]:hi};
+}
+function applyMoney(h,ledger,dpp,hdcps){
+  const pts=h.pts===7?14:(h.pts||0);
+  if(!h.winner||h.winner==='none'||pts===0)return[...ledger];
+  const ptVal=pts*dpp*(h.partner==='alone'?2:1);
+  const captTeam=h.partner==='alone'?[h.captOI]:[h.captOI,h.partOI];
+  const field=[0,1,2,3,4].filter(i=>!captTeam.includes(i));
+  const win=h.winner==='captain'?captTeam:field;
+  const lose=h.winner==='captain'?field:captTeam;
+  const nl=[...ledger];
+  if(win.length===1&&lose.length===4){lose.forEach(i=>{nl[i]-=ptVal});nl[win[0]]+=ptVal*4}
+  else if(win.length===4&&lose.length===1){nl[lose[0]]-=ptVal*4;win.forEach(i=>{nl[i]+=ptVal})}
+  else if(win.length===3&&lose.length===2){
+    win.forEach(i=>{nl[i]+=ptVal});
+    const sp=splitLoss(ptVal*3,lose,nl,hdcps);lose.forEach(i=>{nl[i]-=sp[i]});
+  }else if(win.length===2&&lose.length===3){
+    lose.forEach(i=>{nl[i]-=ptVal});
+    const sp=splitWin(ptVal*3,win,nl,hdcps);win.forEach(i=>{nl[i]+=sp[i]});
   }
-  // Create new player
-  const ref = await db.collection("players").add({ name, pin, rounds:0, wins:0, totalMoney:0, totalHoles:0, captainHoles:0, captainMoney:0 });
-  return { user: { uid: ref.id, name } };
-}
-
-// ─── Players ──────────────────────────────────────────────────────────────────
-async function getPlayers() {
-  const snap = await db.collection("players").orderBy("name").get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-}
-
-async function savePlayer(player) {
-  const { id, ...data } = player;
-  if (id) {
-    await db.collection("players").doc(id).set(data, { merge: true });
-    return id;
-  } else {
-    const ref = await db.collection("players").add(data);
-    return ref.id;
-  }
-}
-
-async function deletePlayer(id) {
-  await db.collection("players").doc(id).delete();
-}
-
-function onPlayers(cb) {
-  return db.collection("players").orderBy("name").onSnapshot(snap => {
-    cb(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-  });
-}
-
-// ─── Courses ──────────────────────────────────────────────────────────────────
-async function getCourses() {
-  const snap = await db.collection("courses").get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-}
-
-async function saveCourse(course) {
-  const { id, ...data } = course;
-  if (id) {
-    await db.collection("courses").doc(id).set(data, { merge: true });
-    return id;
-  } else {
-    const ref = await db.collection("courses").add(data);
-    return ref.id;
-  }
-}
-
-async function deleteCourse(id) {
-  await db.collection("courses").doc(id).delete();
-}
-
-// ─── Rounds ───────────────────────────────────────────────────────────────────
-function generateGameCode() {
-  const words = ["CREEK","EAGLE","BIRDIE","BOGEY","FAIRWAY","GREEN","ROUGH","FLAG"];
-  const word = words[Math.floor(Math.random() * words.length)];
-  const num = Math.floor(Math.random() * 90) + 10;
-  return `${word}-${num}`;
-}
-
-async function createRound(roundData) {
-  const code = generateGameCode();
-  const ref = await db.collection("rounds").add({
-    ...roundData,
-    gameCode: code,
-    status: "active",
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    holes: []
-  });
-  return { id: ref.id, gameCode: code };
-}
-
-async function getRound(id) {
-  const doc = await db.collection("rounds").doc(id).get();
-  return doc.exists ? { id: doc.id, ...doc.data() } : null;
-}
-
-async function getRoundByCode(code) {
-  const snap = await db.collection("rounds").where("gameCode", "==", code.toUpperCase()).limit(1).get();
-  if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() };
-}
-
-async function updateRound(id, data) {
-  await db.collection("rounds").doc(id).update(data);
-}
-
-async function completeRound(id, finalLedger, results) {
-  await db.collection("rounds").doc(id).update({
-    status: "complete",
-    finalLedger,
-    results,
-    completedAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-}
-
-function onRound(id, cb) {
-  return db.collection("rounds").doc(id).onSnapshot(doc => {
-    if (doc.exists) cb({ id: doc.id, ...doc.data() });
-  });
-}
-
-async function getRecentRounds(limit = 20) {
-  const snap = await db.collection("rounds")
-    .where("status", "==", "complete")
-    .orderBy("completedAt", "desc")
-    .limit(limit)
-    .get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-}
-
-// ─── Player Stats Update ───────────────────────────────────────────────────────
-async function updatePlayerStats(roundData, finalLedger, holeHistory) {
-  const { playerOrder, players } = roundData;
-  const batch = db.batch();
-
-  playerOrder.forEach((playerId, orderIdx) => {
-    if (!playerId) return;
-    const playerRef = db.collection("players").doc(playerId);
-    const money = Math.round(finalLedger[orderIdx]);
-
-    // Count holes as captain and money earned as captain
-    let captainHoles = 0;
-    let captainMoney = 0;
-    let prevLedger = [0,0,0,0,0];
-
-    holeHistory.forEach(h => {
-      const moneyBefore = prevLedger[orderIdx];
-      const moneyAfter = (h.ledgerAfter || prevLedger)[orderIdx];
-      const holeMoney = (moneyAfter || 0) - (moneyBefore || 0);
-      if (h.captain === orderIdx) {
-        captainHoles++;
-        captainMoney += holeMoney;
-      }
-      prevLedger = h.ledgerAfter || prevLedger;
-    });
-
-    batch.update(playerRef, {
-      rounds: firebase.firestore.FieldValue.increment(1),
-      totalMoney: firebase.firestore.FieldValue.increment(money),
-      totalHoles: firebase.firestore.FieldValue.increment(18),
-      captainHoles: firebase.firestore.FieldValue.increment(captainHoles),
-      captainMoney: firebase.firestore.FieldValue.increment(captainMoney),
-      wins: firebase.firestore.FieldValue.increment(
-        finalLedger.indexOf(Math.max(...finalLedger)) === orderIdx ? 1 : 0
-      ),
-      lastIndex: players[orderIdx]?.index || ""
-    });
-  });
-
-  await batch.commit();
-}
-
-  </script>
-
-  <!-- React App -->
-
-  <script type="text/babel" data-presets="react">
-// ─── React globals from CDN ────────────────────────────────────────────────────
-const { useState, useEffect, useRef } = React;
-
-// ─── Math helpers ──────────────────────────────────────────────────────────────
-function calcCourseHdcp(index, slope, rating, par) {
-  return Math.round(parseFloat(index||0) * (parseFloat(slope||113) / 113) + (parseFloat(rating||72) - parseFloat(par||72)));
-}
-function strokeHolesForPlayer(extra, holeHdcps) {
-  if (extra <= 0) return [];
-  return [...holeHdcps]
-    .map((h, i) => ({ hole: i + 1, hdcp: parseInt(h) || i + 1 }))
-    .sort((a, b) => a.hdcp - b.hdcp)
-    .slice(0, extra).map(h => h.hole);
-}
-function fmt$(n) {
-  if (n === 0 || n === undefined || n === null) return "$0";
-  const rounded = Math.round(n);
-  return (rounded < 0 ? "-$" : "+$") + Math.abs(rounded);
-}
-function whoIsFurtherBehind(pis, ledger, courseHdcps) {
-  const [a, b] = pis;
-  if (ledger[a] !== ledger[b]) return ledger[a] < ledger[b] ? [a, b] : [b, a];
-  const hA = courseHdcps ? (courseHdcps[a] || 0) : 0;
-  const hB = courseHdcps ? (courseHdcps[b] || 0) : 0;
-  return hA >= hB ? [a, b] : [b, a];
-}
-function splitTwoWin(total, pis, ledger, courseHdcps) {
-  const cents = Math.round(total * 100);
-  const hi = Math.ceil(cents / 200); const lo = Math.floor(cents / 200);
-  const [further, other] = whoIsFurtherBehind(pis, ledger, courseHdcps);
-  return { [further]: hi, [other]: lo };
-}
-function splitTwoLoss(total, pis, ledger, courseHdcps) {
-  const cents = Math.round(total * 100);
-  const hi = Math.ceil(cents / 200); const lo = Math.floor(cents / 200);
-  const [further, other] = whoIsFurtherBehind(pis, ledger, courseHdcps);
-  return { [further]: lo, [other]: hi };
-}
-function nextPressDpp(mode, origDpp, currentDpp) {
-  if (mode === "double") return currentDpp * 2;
-  if (mode === "increment") return currentDpp + origDpp;
-  return currentDpp;
-}
-function computeHdcpInfo(cd, players) {
-  const par = parseInt(cd.par) || 72;
-  const slope = parseFloat(cd.slope) || 113;
-  const rating = parseFloat(cd.rating) || par;
-  const courseHdcps = players.map(p => calcCourseHdcp(p.index, slope, rating, par));
-  const low = Math.min(...courseHdcps);
-  const extras = courseHdcps.map(ch => Math.max(0, ch - low));
-  const sHoles = extras.map(e => strokeHolesForPlayer(e, cd.holeHdcps || []));
-  return { courseHdcps, low, extras, sHoles, cd };
-}
-function applyHoleMoney(h, runningLedger, dpp, courseHdcps) {
-  const realPts = h.pts === 7 ? 14 : (h.pts || 0);
-  const nl = [...runningLedger];
-  if (!h.winner || h.winner === "none" || realPts === 0) return nl;
-  const isLone = h.partner === "alone";
-  const ptVal = realPts * dpp * (isLone ? 2 : 1);
-  // Build teams from stored orderIndices
-  const captOI = [h.captainOI, ...(isLone ? [] : [h.partnerOI])];
-  const fieldOI = [0,1,2,3,4].filter(i => !captOI.includes(i));
-  const winOI = h.winner === "captain" ? captOI : fieldOI;
-  const loseOI = h.winner === "captain" ? fieldOI : captOI;
-  if (winOI.length === 1 && loseOI.length === 4) {
-    loseOI.forEach(i => { nl[i] -= ptVal; }); nl[winOI[0]] += ptVal * 4;
-  } else if (winOI.length === 4 && loseOI.length === 1) {
-    nl[loseOI[0]] -= ptVal * 4; winOI.forEach(i => { nl[i] += ptVal; });
-  } else if (winOI.length === 3 && loseOI.length === 2) {
-    winOI.forEach(i => { nl[i] += ptVal; });
-    const sp = splitTwoLoss(ptVal * 3, loseOI, nl, courseHdcps);
-    loseOI.forEach(i => { nl[i] -= sp[i]; });
-  } else if (winOI.length === 2 && loseOI.length === 3) {
-    loseOI.forEach(i => { nl[i] -= ptVal; });
-    const sp = splitTwoWin(ptVal * 3, winOI, nl, courseHdcps);
-    winOI.forEach(i => { nl[i] += sp[i]; });
-  }
-  const totalCents = nl.reduce((s, v) => s + Math.round(v * 100), 0);
-  if (totalCents !== 0) nl[winOI[0]] -= totalCents / 100;
-  nl.forEach((v, i) => { nl[i] = Math.round(v); });
+  const tot=nl.reduce((s,v)=>s+Math.round(v*100),0);
+  if(tot!==0)nl[win[0]]-=tot/100;
+  nl.forEach((v,i)=>{nl[i]=Math.round(v)});
   return nl;
 }
-function replayLedger(holes, dpp, courseHdcps) {
-  let ledger = [0,0,0,0,0];
-  let currentDpp = dpp;
-  return holes.map(h => {
-    if (h.pressTo) currentDpp = h.pressTo;
-    ledger = applyHoleMoney(h, ledger, currentDpp, courseHdcps);
-    return { ...h, ledgerAfter: [...ledger], dpp: currentDpp };
-  });
-}
-function computeSettlement(players, ledger) {
-  const balances = players.map((p, i) => ({ ...p, bal: Math.round(ledger[i] || 0) }));
-  const cred = balances.filter(p => p.bal > 0).sort((a,b) => b.bal - a.bal).map(p => ({...p, rem: p.bal}));
-  const debt = balances.filter(p => p.bal < 0).sort((a,b) => a.bal - b.bal).map(p => ({...p, rem: Math.abs(p.bal)}));
-  const txns = [];
-  let ci = 0, di = 0;
-  while (ci < cred.length && di < debt.length) {
-    const amt = Math.min(cred[ci].rem, debt[di].rem);
-    if (amt > 0) txns.push({ from: debt[di], to: cred[ci], amount: amt });
-    cred[ci].rem -= amt; debt[di].rem -= amt;
-    if (cred[ci].rem === 0) ci++;
-    if (debt[di].rem === 0) di++;
+function settle(players,ledger){
+  const c=players.map((p,i)=>({...p,bal:Math.round(ledger[i]||0)}));
+  const cr=c.filter(p=>p.bal>0).sort((a,b)=>b.bal-a.bal).map(p=>({...p,rem:p.bal}));
+  const dt=c.filter(p=>p.bal<0).sort((a,b)=>a.bal-b.bal).map(p=>({...p,rem:Math.abs(p.bal)}));
+  const txns=[];let ci=0,di=0;
+  while(ci<cr.length&&di<dt.length){
+    const amt=Math.min(cr[ci].rem,dt[di].rem);
+    if(amt>0)txns.push({from:dt[di],to:cr[ci],amount:amt});
+    cr[ci].rem-=amt;dt[di].rem-=amt;
+    if(cr[ci].rem===0)ci++;if(dt[di].rem===0)di++;
   }
   return txns;
 }
-function paymentLink(method, handle, amount, note) {
-  const enc = encodeURIComponent;
-  switch(method) {
-    case 'venmo':   return `venmo://paycharge?txn=pay&recipients=${enc(handle)}&amount=${amount}&note=${enc(note)}&audience=private`;
-    case 'cashapp': return `cashapp://cash.app/${handle.startsWith('$')?handle:'$'+handle}?amount=${amount}`;
-    case 'paypal':  return `https://paypal.me/${handle.replace('@','')}/${amount}`;
-    default: return null;
+function payLink(method,handle,amount,note){
+  const e=encodeURIComponent;
+  if(method==='venmo')return`venmo://paycharge?txn=pay&recipients=${e(handle)}&amount=${amount}&note=${e(note)}&audience=private`;
+  if(method==='cashapp')return`cashapp://cash.app/${handle.startsWith('$')?handle:'$'+handle}?amount=${amount}`;
+  if(method==='paypal')return`https://paypal.me/${handle.replace('@','')}/${amount}`;
+  return null;
+}
+const PAY_LABELS={venmo:'Venmo',cashapp:'Cash App',paypal:'PayPal',zelle:'Zelle',applepay:'Apple Pay',cash:'Cash'};
+const PAY_PH={venmo:'@username',cashapp:'$cashtag',paypal:'paypal.me/username',zelle:'Phone or email'};
+const GOLF_API='https://api.golfcourseapi.com/v1';
+const GOLF_KEY='KXSGCSOLULGUKSCRQHLBHTCAME';
+
+// ── PIN Auth ──────────────────────────────────────────────────────────────────
+async function pinSignIn(pid,pin){
+  const s=await db.collection('players').doc(pid).get();
+  if(!s.exists)return{error:'Player not found'};
+  const d=s.data();
+  if(!d.pin)return{error:'No PIN set — register first'};
+  if(d.pin!==pin)return{error:'Wrong PIN'};
+  return{user:{uid:pid,name:d.name}};
+}
+async function pinRegister(name,pin){
+  const s=await db.collection('players').where('name','==',name).limit(1).get();
+  if(!s.empty){
+    await db.collection('players').doc(s.docs[0].id).update({pin});
+    return{user:{uid:s.docs[0].id,name}};
   }
+  const ref=await db.collection('players').add({name,pin,rounds:0,wins:0,totalMoney:0,totalHoles:0,captainHoles:0,captainMoney:0});
+  return{user:{uid:ref.id,name}};
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const S = {
-  root: { minHeight:"100vh", background:"#080d08", color:"#e4ede4", fontFamily:"'Georgia',serif", maxWidth:480, margin:"0 auto", paddingBottom:64 },
-  hdr: { background:"linear-gradient(160deg,#162916,#0a1a0a)", borderBottom:"2px solid #1e4a1e", padding:"20px 20px 14px", textAlign:"center" },
-  logo: { fontSize:32, fontWeight:700, letterSpacing:10, color:"#c5e8c5", textShadow:"0 0 30px #4ade8050" },
-  logoSub: { fontSize:11, letterSpacing:6, color:"#4ade80", marginTop:2 },
-  card: { margin:"12px 12px", background:"#0f1a0f", border:"1px solid #1a3a1a", borderRadius:12, padding:"14px 13px" },
-  sec: { fontSize:10, letterSpacing:3, color:"#4ade80", textTransform:"uppercase", marginBottom:9, marginTop:4, borderBottom:"1px solid #1a3a1a", paddingBottom:5 },
-  inp: { width:"100%", background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#e4ede4", padding:"10px 12px", fontSize:15, marginBottom:8, boxSizing:"border-box", outline:"none", fontFamily:"'Georgia',serif" },
-  row: { display:"flex", alignItems:"center", gap:6, marginBottom:8, flexWrap:"wrap" },
-  btn: { width:"100%", background:"linear-gradient(135deg,#1a5c1a,#267a26)", border:"none", borderRadius:8, color:"#e4ede4", padding:"12px 16px", fontSize:15, fontFamily:"'Georgia',serif", cursor:"pointer", marginTop:8 },
-  btnSm: { background:"linear-gradient(135deg,#1a5c1a,#267a26)", border:"none", borderRadius:8, color:"#e4ede4", padding:"9px 14px", fontSize:13, fontFamily:"'Georgia',serif", cursor:"pointer" },
-  btnGhost: { background:"transparent", border:"1px solid #1e3a1e", borderRadius:8, color:"#777", padding:"9px 13px", fontSize:13, fontFamily:"'Georgia',serif", cursor:"pointer" },
-  btnDark: { width:"100%", background:"#111a11", border:"1px solid #1a3a1a", borderRadius:8, color:"#666", padding:"12px 16px", fontSize:14, fontFamily:"'Georgia',serif", cursor:"pointer", marginTop:6 },
-  btnDanger: { width:"100%", background:"#1a0808", border:"1px solid #3a1a1a", borderRadius:8, color:"#f87171", padding:"12px 16px", fontSize:14, fontFamily:"'Georgia',serif", cursor:"pointer", marginTop:6 },
-  teeBtn: { flex:1, background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#888", padding:"8px 4px", fontSize:12, cursor:"pointer", fontFamily:"'Georgia',serif" },
-  teeBtnOn: { background:"#1a5c1a", border:"1px solid #4ade80", color:"#e4ede4" },
-  gameHdr: { background:"linear-gradient(160deg,#162916,#0a1a0a)", padding:"10px 14px", borderBottom:"2px solid #1e4a1e", display:"flex", justifyContent:"space-between", alignItems:"center" },
-  ledgerStrip: { display:"flex", background:"#0a130a", borderBottom:"1px solid #1a3a1a", overflowX:"auto" },
-  ledgerItem: { flex:1, padding:"7px 3px", textAlign:"center", borderRight:"1px solid #1a3a1a", minWidth:68 },
-  pickBtn: { flex:1, minWidth:"47%", background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#bbb", padding:"13px 8px", fontSize:14, cursor:"pointer", fontFamily:"'Georgia',serif", marginBottom:6, textAlign:"center" },
-  pickBtnOn: { background:"#162616", border:"2px solid #4ade80", color:"#e4ede4" },
-  winBtn: { flex:1, background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#bbb", padding:"13px 6px", fontSize:12, cursor:"pointer", fontFamily:"'Georgia',serif", textAlign:"center" },
-  winBtnOn: { background:"#162616", border:"2px solid #4ade80", color:"#e4ede4" },
-  ptBtn: { background:"#0a130a", border:"1px solid #1e3a1e", borderRadius:8, color:"#bbb", padding:"13px 4px", fontSize:20, cursor:"pointer", fontFamily:"'Georgia',serif", textAlign:"center" },
-  ptBtnOn: { background:"#162616", border:"2px solid #4ade80", color:"#e4ede4" },
-  orderRow: { display:"flex", alignItems:"center", background:"#080d08", border:"1px solid #1a3a1a", borderRadius:8, padding:"11px 13px", marginBottom:7, gap:10 },
-  errBox: { fontSize:13, color:"#f87171", margin:"7px 0", padding:"8px 10px", background:"#1a0808", borderRadius:8 },
-  pressZone: { background:"#100a00", border:"1px solid #2a1a00", borderRadius:8, padding:"10px 12px", marginBottom:12 },
-  moneyBox: { background:"#080d08", borderRadius:8, padding:"10px 12px", margin:"10px 0", fontSize:13 },
-  holeCell: { background:"#080d08", border:"1px solid #1a3a1a", borderRadius:5, padding:"3px 2px", textAlign:"center" },
-  gameCodeBox: { background:"#162616", border:"2px solid #4ade80", borderRadius:12, padding:"16px", textAlign:"center", margin:"12px 0" },
+// ── App State ─────────────────────────────────────────────────────────────────
+const STATE = {
+  user: null,
+  screen: 'login',
+  players: [],
+  courses: [],
+  history: [],
+  round: null,
+  roundId: null,
+  isKeeper: false,
+  hdcpInfo: null,
+  holes: [],
+  ledger: [0,0,0,0,0],
+  curHole: 0,
+  dpp: 1,
+  passed: [],
+  pressLog: [],
+  // per-hole
+  step: 'captain',
+  partner: null,
+  winner: null,
+  pts: null,
+  showPress: false,
+  presser: null,
+  pressVal: '',
+  editHole: null,
 };
 
-const PAYMENT_METHODS = ['venmo','cashapp','paypal','zelle','applepay','cash'];
-const PAYMENT_LABELS = { venmo:'Venmo', cashapp:'Cash App', paypal:'PayPal', zelle:'Zelle', applepay:'Apple Pay', cash:'Cash' };
-const PAYMENT_PLACEHOLDERS = { venmo:'@username', cashapp:'$cashtag', paypal:'paypal.me/username', zelle:'Phone or email' };
-const API_KEY = "KXSGCSOLULGUKSCRQHLBHTCAME";
-const GOLF_API = "https://api.golfcourseapi.com/v1";
+let unsubRound = null;
+let unsubPlayers = null;
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
-function FiveManCaptain() {
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [screen, setScreen] = useState("home");
-  const [players, setPlayers] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [roundHistory, setRoundHistory] = useState([]);
-  const [appError, setAppError] = useState(null);
+function setState(updates){
+  Object.assign(STATE,updates);
+  render();
+}
 
-  // Active round state
-  const [activeRound, setActiveRound] = useState(null); // full round doc
-  const [roundId, setRoundId] = useState(null);
-  const [isScorekeeper, setIsScorekeeper] = useState(false);
-  const [hdcpInfo, setHdcpInfo] = useState(null);
-  const [holes, setHoles] = useState([]); // hole history
-  const [ledger, setLedger] = useState([0,0,0,0,0]);
-  const [currentHole, setCurrentHole] = useState(0);
-  const [activeDpp, setActiveDpp] = useState(1);
-  const [passed, setPassed] = useState([]);
-  const [pressLog, setPressLog] = useState([]);
+// ── Firebase DB ───────────────────────────────────────────────────────────────
+function listenPlayers(){
+  if(unsubPlayers)unsubPlayers();
+  unsubPlayers=db.collection('players').orderBy('name').onSnapshot(snap=>{
+    STATE.players=snap.docs.map(d=>({id:d.id,...d.data()}));
+    render();
+  },err=>console.error('players:',err));
+}
+function listenRound(id){
+  if(unsubRound)unsubRound();
+  unsubRound=db.collection('rounds').doc(id).onSnapshot(doc=>{
+    if(!doc.exists)return;
+    const r={id:doc.id,...doc.data()};
+    STATE.round=r;
+    STATE.holes=r.holes||[];
+    if(STATE.holes.length>0)STATE.ledger=[...(STATE.holes[STATE.holes.length-1].ledgerAfter||[0,0,0,0,0])];
+    if(r.activeDpp)STATE.dpp=r.activeDpp;
+    if(r.status==='complete')STATE.curHole=18;
+    else STATE.curHole=STATE.holes.length;
+    render();
+  });
+}
+async function savePlayer(p){
+  const{id,...data}=p;
+  if(id){await db.collection('players').doc(id).set(data,{merge:true});return id;}
+  const ref=await db.collection('players').add(data);return ref.id;
+}
+async function deletePlayer(id){await db.collection('players').doc(id).delete()}
+async function saveCourse(c){
+  const{id,...data}=c;
+  if(id){await db.collection('courses').doc(id).set(data,{merge:true});return id;}
+  const ref=await db.collection('courses').add(data);return ref.id;
+}
+async function loadCourses(){
+  const s=await db.collection('courses').get();
+  STATE.courses=s.docs.map(d=>({id:d.id,...d.data()}));render();
+}
+async function loadHistory(){
+  const s=await db.collection('rounds').where('status','==','complete').orderBy('completedAt','desc').limit(20).get();
+  STATE.history=s.docs.map(d=>({id:d.id,...d.data()}));render();
+}
+function genCode(){
+  const w=['CREEK','EAGLE','BIRDIE','BOGEY','FLAG','GREEN'];
+  return w[Math.floor(Math.random()*w.length)]+'-'+Math.floor(Math.random()*90+10);
+}
+async function createRound(data,cd){
+  const code=genCode();
+  const ref=await db.collection('rounds').add({...data,courseData:cd,gameCode:code,status:'active',holes:[],activeDpp:data.dpp,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  return{id:ref.id,gameCode:code};
+}
 
-  // Per-hole UI
-  const [step, setStep] = useState("captain");
-  const [partner, setPartner] = useState(null);
-  const [winner, setWinner] = useState(null);
-  const [pts, setPts] = useState(null);
-  const [showPress, setShowPress] = useState(false);
-  const [pressingPlayer, setPressingPlayer] = useState(null);
-  const [pressCustomVal, setPressCustomVal] = useState("");
-  const [editingHole, setEditingHole] = useState(null);
+// ── Captain logic ─────────────────────────────────────────────────────────────
+function lightningHoles(){return STATE.round?.lightningRound==='14'?[13,16,17]:[15,16,17]}
+function isLightning(hi){return lightningHoles().includes(hi)}
+function fixedCaptain(hi){
+  if(STATE.round?.lightningRound!=='14')return null;
+  if(hi===14)return 3;if(hi===15)return 4;return null;
+}
+function captainFor(hi,led,passed){
+  const fc=fixedCaptain(hi);if(fc!==null)return fc;
+  if(isLightning(hi)){
+    const el=[0,1,2,3,4].filter(i=>!passed.includes(i));
+    if(!el.length)return hi%5;
+    return[...el].sort((a,b)=>led[a]-led[b])[0];
+  }
+  return hi%5;
+}
+
+// ── Hole finalization ─────────────────────────────────────────────────────────
+async function finalizeHole(){
+  const hi=STATE.curHole;
+  const captOI=captainFor(hi,STATE.ledger,STATE.passed);
+  const partOI=STATE.partner==='alone'?null:STATE.partner;
+  const cd=STATE.round?.courseData;
+  const hdcps=cd&&STATE.hdcpInfo?STATE.hdcpInfo.courseHdcps:null;
+  const hRec={hole:hi+1,captOI,partOI,partner:STATE.partner,winner:STATE.winner,pts:STATE.pts===7?14:(STATE.pts||0),dpp:STATE.dpp,ledgerAfter:null};
+  const nl=applyMoney(hRec,STATE.ledger,STATE.dpp,hdcps);
+  hRec.ledgerAfter=nl;
+  const newHoles=[...STATE.holes,hRec];
+  await db.collection('rounds').doc(STATE.roundId).update({holes:newHoles,activeDpp:STATE.dpp,ledger:nl});
+  if(hi>=17){
+    await db.collection('rounds').doc(STATE.roundId).update({status:'complete',finalLedger:nl,results:STATE.round.playerOrder.map((pid,i)=>({playerId:pid,name:STATE.players.find(p=>p.id===pid)?.name||'?',money:nl[i]})),completedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    setState({screen:'summary'});
+  } else {
+    resetHole();
+  }
+}
+async function saveEdit(hIdx,updates){
+  const newHoles=[...STATE.holes];
+  newHoles[hIdx]={...newHoles[hIdx],...updates};
+  const cd=STATE.round?.courseData;
+  const hdcps=cd&&STATE.hdcpInfo?STATE.hdcpInfo.courseHdcps:null;
+  let runLed=hIdx===0?[0,0,0,0,0]:[...(newHoles[hIdx-1].ledgerAfter||[0,0,0,0,0])];
+  for(let i=hIdx;i<newHoles.length;i++){
+    runLed=applyMoney(newHoles[i],runLed,newHoles[i].dpp||STATE.dpp,hdcps);
+    newHoles[i]={...newHoles[i],ledgerAfter:[...runLed]};
+  }
+  await db.collection('rounds').doc(STATE.roundId).update({holes:newHoles,ledger:runLed});
+  setState({editHole:null});
+}
+function resetHole(){setState({step:'captain',partner:null,winner:null,pts:null,showPress:false,presser:null,pressVal:'',passed:[],editHole:null})}
+
+// ── Render engine (vanilla DOM) ───────────────────────────────────────────────
+function el(tag,attrs,children){
+  const e=document.createElement(tag);
+  if(attrs)Object.entries(attrs).forEach(([k,v])=>{
+    if(k==='style'&&typeof v==='object')Object.assign(e.style,v);
+    else if(k.startsWith('on'))e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==='className')e.className=v;
+    else if(k==='htmlFor')e.htmlFor=v;
+    else if(k==='value')e.value=v;
+    else if(k==='placeholder')e.placeholder=v;
+    else if(k==='type')e.type=v;
+    else if(k==='maxLength')e.maxLength=v;
+    else if(k==='inputMode')e.inputMode=v;
+    else if(k==='href'){e.href=v;e.target='_blank';e.rel='noreferrer';}
+    else e.setAttribute(k,v);
+  });
+  if(children)flatAppend(e,children);
+  return e;
+}
+function flatAppend(parent,children){
+  if(Array.isArray(children))children.forEach(c=>flatAppend(parent,c));
+  else if(children===null||children===undefined||children===false){}
+  else if(typeof children==='string'||typeof children==='number')parent.appendChild(document.createTextNode(children));
+  else parent.appendChild(children);
+}
+function div(cls,children,style){return el('div',{className:cls||'',style:style||{}},children)}
+function btn(cls,text,onClick,style){return el('button',{className:cls,onClick,style:style||{}},text)}
+function inp(type,placeholder,value,onInput,extra){
+  const e=el('input',{type,placeholder,value:value||'',onInput,...(extra||{})});
+  return e;
+}
+
+// ── Screens ───────────────────────────────────────────────────────────────────
+function renderLogin(){
+  const s=el('div',{id:'loginState',style:{padding:'0'}});
+  let mode='select';
+  let selPlayer=null;
+  let pin='',name='',newPin='',confPin='';
+
+  function draw(){
+    s.innerHTML='';
+    const wrap=div('card');
+    wrap.appendChild(div('',['']));
+    // Header
+    const htop=div('',null,{textAlign:'center',marginBottom:'16px'});
+    htop.appendChild(div('',['⛳'],{fontSize:'48px',marginBottom:'8px'}));
+    htop.appendChild(div('',['Welcome to 5-Man Captain'],{fontSize:'18px',color:'#c5e8c5'}));
+    wrap.appendChild(htop);
+
+    if(mode==='select'){
+      wrap.appendChild(div('sec',['Who Are You?']));
+      if(STATE.players.length===0){
+        wrap.appendChild(div('',['No players yet — tap New Player below'],{color:'#555',fontSize:'13px',marginBottom:'10px'}));
+      }
+      STATE.players.forEach(p=>{
+        const b=btn('btnd',p.name,()=>{selPlayer=p;mode='pin';pin='';draw()});
+        wrap.appendChild(b);
+      });
+      wrap.appendChild(btn('btn','+ New Player / First Time',()=>{mode='register';draw()}));
+    }
+    else if(mode==='pin'){
+      wrap.appendChild(div('sec',['Enter PIN — '+selPlayer.name]));
+      const i=inp('password','••••',pin,e=>{pin=e.target.value.replace(/\D/g,'').slice(0,4);draw()},{maxLength:4,inputMode:'numeric',style:{fontSize:'24px',textAlign:'center',letterSpacing:'12px'}});
+      wrap.appendChild(i);
+      const errDiv=div('err',[]);errDiv.style.display='none';wrap.appendChild(errDiv);
+      wrap.appendChild(btn('btn',pin.length===4?'Sign In':'Enter PIN',async()=>{
+        if(pin.length!==4)return;
+        const r=await pinSignIn(selPlayer.id,pin);
+        if(r.error){errDiv.textContent=r.error;errDiv.style.display='block';return;}
+        const u={uid:selPlayer.id,name:selPlayer.name};
+        localStorage.setItem('5mc_user',JSON.stringify(u));
+        setState({user:u,screen:'home'});
+        listenPlayers();
+      },{opacity:pin.length===4?'1':'0.5'}));
+      wrap.appendChild(btn('btnd','← Back',()=>{mode='select';draw()}));
+    }
+    else if(mode==='register'){
+      wrap.appendChild(div('sec',['Create Your Profile']));
+      wrap.appendChild(inp('text','Your name',name,e=>{name=e.target.value}));
+      wrap.appendChild(inp('password','Create 4-digit PIN',newPin,e=>{newPin=e.target.value.replace(/\D/g,'').slice(0,4)},{maxLength:4,inputMode:'numeric',style:{fontSize:'20px',textAlign:'center',letterSpacing:'8px'}}));
+      wrap.appendChild(inp('password','Confirm PIN',confPin,e=>{confPin=e.target.value.replace(/\D/g,'').slice(0,4)},{maxLength:4,inputMode:'numeric',style:{fontSize:'20px',textAlign:'center',letterSpacing:'8px'}}));
+      const errDiv=div('err',[]);errDiv.style.display='none';wrap.appendChild(errDiv);
+      wrap.appendChild(btn('btn','Create Profile',async()=>{
+        // read values fresh from DOM
+        const inputs=wrap.querySelectorAll('input');
+        const n=inputs[0].value.trim();
+        const p1=inputs[1].value;
+        const p2=inputs[2].value;
+        if(!n){errDiv.textContent='Enter your name';errDiv.style.display='block';return;}
+        if(p1.length!==4){errDiv.textContent='PIN must be 4 digits';errDiv.style.display='block';return;}
+        if(p1!==p2){errDiv.textContent="PINs don't match";errDiv.style.display='block';return;}
+        const r=await pinRegister(n,p1);
+        if(r.error){errDiv.textContent=r.error;errDiv.style.display='block';return;}
+        const u={uid:r.user.uid,name:r.user.name};
+        localStorage.setItem('5mc_user',JSON.stringify(u));
+        setState({user:u,screen:'home'});
+        listenPlayers();
+      }));
+      wrap.appendChild(btn('btnd','← Back',()=>{mode='select';draw()}));
+    }
+    s.appendChild(wrap);
+  }
+  draw();
+  return s;
+}
+
+function renderHome(){
+  const wrap=div('');
+  wrap.appendChild(div('card',[]));
+
+  // User greeting
+  const greet=div('',['👤 '+STATE.user?.name],{fontSize:'11px',color:'#4ade80',textAlign:'center',padding:'4px 0'});
+
+  const card=div('card');
+  card.appendChild(btn('btn','⛳ New Round',()=>{setState({screen:'newround'})}));
 
   // Join round
-  const [joinCode, setJoinCode] = useState("");
-  const [joinErr, setJoinErr] = useState("");
+  card.appendChild(div('sec',['Join a Round']));
+  const joinRow=div('row');
+  const codeInp=inp('text','Game code (e.g. CREEK-42)','',null,{style:{flex:'1',marginBottom:'0'}});
+  const joinErr=div('err',[]);joinErr.style.display='none';
+  joinRow.appendChild(codeInp);
+  joinRow.appendChild(btn('btnsm','Join',async()=>{
+    const code=codeInp.value.trim().toUpperCase();
+    if(!code)return;
+    const s=await db.collection('rounds').where('gameCode','==',code).limit(1).get();
+    if(s.empty){joinErr.textContent='Game not found';joinErr.style.display='block';return;}
+    const r={id:s.docs[0].id,...s.docs[0].data()};
+    STATE.round=r;STATE.roundId=r.id;STATE.isKeeper=false;
+    listenRound(r.id);
+    setState({screen:'spectate'});
+  }));
+  card.appendChild(joinRow);
+  card.appendChild(joinErr);
 
-  // PIN auth — check localStorage for saved session
-  useEffect(() => {
-    const saved = localStorage.getItem("5mc_user");
-    if (saved) {
-      try { setUser(JSON.parse(saved)); } catch {}
-    }
-    setAuthLoading(false);
-  }, []);
+  card.appendChild(btn('btnd','👤 Player Roster',()=>setState({screen:'roster'})));
+  card.appendChild(btn('btnd','📋 Round History',()=>{loadHistory();setState({screen:'history'})}));
+  card.appendChild(btn('btnd','📊 Stats & Rankings',()=>setState({screen:'stats'})));
+  card.appendChild(btn('btnd','Sign Out',()=>{localStorage.removeItem('5mc_user');setState({user:null,screen:'login'})}));
+  wrap.appendChild(greet);
+  wrap.appendChild(card);
 
-  function pinLogout() {
-    localStorage.removeItem("5mc_user");
-    setUser(null);
-    setScreen("home");
-  }
-
-  // Load players on mount
-  useEffect(() => {
-    if (!user) return;
-    try {
-      const unsub = db.collection("players").orderBy("name").onSnapshot(
-        snap => { setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() }))); },
-        err => { setAppError("Firestore error: " + err.message); }
-      );
-      return unsub;
-    } catch(e) {
-      setAppError("Players load error: " + e.message);
-    }
-  }, [user]);
-
-  // Subscribe to active round
-  useEffect(() => {
-    if (!roundId) return;
-    const unsub = onRound(roundId, round => {
-      setActiveRound(round);
-      const h = round.holes || [];
-      setHoles(h);
-      if (h.length > 0) {
-        setLedger([...(h[h.length-1].ledgerAfter || [0,0,0,0,0])]);
-        setCurrentHole(round.status === "complete" ? 18 : h.length);
-      }
-      if (round.activeDpp) setActiveDpp(round.activeDpp);
+  // Last round
+  if(STATE.history.length>0){
+    const r=STATE.history[0];
+    const hcard=div('card');
+    hcard.appendChild(div('sec',['Last Round']));
+    hcard.appendChild(div('',[(r.courseData?.name||'')],{fontSize:'12px',color:'#666',marginBottom:'6px'}));
+    (r.results||[]).sort((a,b)=>b.money-a.money).forEach((p,i)=>{
+      const row=div('row');
+      row.appendChild(div('',[ p.name],{flex:'1',fontSize:'14px',color:i===0?'#f59e0b':'#e4ede4'}));
+      row.appendChild(div('',[fmt(p.money)],{fontWeight:'700',color:p.money>=0?'#4ade80':'#f87171'}));
+      hcard.appendChild(row);
     });
-    return unsub;
-  }, [roundId]);
-
-  // ── Auth ───────────────────────────────────────────────────────────────────
-  if (appError) return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>ERROR</div></div>
-      <div style={{padding:20,color:"#f87171",fontSize:13,wordBreak:"break-all"}}>{appError}</div>
-      <div style={{padding:"0 12px"}}>
-        <button style={S.btn} onClick={() => { setAppError(null); setScreen("home"); }}>Try Again</button>
-      </div>
-    </div>
-  );
-
-  if (authLoading) return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CAPTAIN</div></div>
-      <div style={{textAlign:"center",padding:40,color:"#4ade80"}}>Loading...</div>
-    </div>
-  );
-
-  if (!user) return <LoginScreen S={S} onLogin={(u) => { setUser(u); setScreen("home"); }} />;
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  function getLightningHoles(setting) {
-    return setting === "14" ? [13,16,17] : [15,16,17];
+    wrap.appendChild(hcard);
   }
-  function isLightningHole(hIdx) {
-    if (!activeRound) return false;
-    return getLightningHoles(activeRound.lightningRound || "16").includes(hIdx);
-  }
-  function getFixedCaptain(hIdx) {
-    if (!activeRound || activeRound.lightningRound !== "14") return null;
-    if (hIdx === 14) return 3; // order index 3 = player 4
-    if (hIdx === 15) return 4; // order index 4 = player 5
-    return null;
-  }
-  function captainFor(hIdx, curLedger, curPassed) {
-    const fixed = getFixedCaptain(hIdx);
-    if (fixed !== null) return fixed;
-    if (isLightningHole(hIdx)) {
-      const eligible = [0,1,2,3,4].filter(i => !curPassed.includes(i));
-      if (!eligible.length) return hIdx % 5;
-      return [...eligible].sort((a,b) => curLedger[a] - curLedger[b])[0];
+  wrap.appendChild(renderNavBar('home'));
+  return wrap;
+}
+
+function renderRoster(){
+  const wrap=div('');
+  const hdr=div('hdr');hdr.appendChild(div('logo',['5-MAN']));hdr.appendChild(div('sub',['ROSTER']));
+  wrap.appendChild(hdr);
+
+  const card=div('card');
+  card.appendChild(div('sec',['Players ('+STATE.players.length+')']));
+
+  STATE.players.forEach(p=>{
+    const row=div('orow');
+    const info=div('',null,{flex:'1'});
+    info.appendChild(div('',[ p.name],{fontSize:'15px'}));
+    info.appendChild(div('',['Idx '+(p.lastIndex||p.index||'?')+' · '+(p.rounds||0)+' rds · '+(p.wins||0)+'W · '+fmt(p.totalMoney||0)],{fontSize:'11px',color:'#666'}));
+    if(p.paymentMethod&&p.paymentMethod!=='cash'){
+      info.appendChild(div('',[PAY_LABELS[p.paymentMethod]+': '+p.paymentHandle],{fontSize:'11px',color:'#4ade80'}));
     }
-    return hIdx % 5;
-  }
-  const curCaptainOI = activeRound ? captainFor(currentHole, ledger, passed) : 0;
-  const orderPlayers = activeRound ? (activeRound.playerOrder || []).map(pid => players.find(p => p.id === pid) || { name:"?", index:"0" }) : [];
-  const captainPlayer = orderPlayers[curCaptainOI];
+    row.appendChild(info);
+    const acts=div('',null,{display:'flex',flexDirection:'column',gap:'4px',alignItems:'flex-end'});
+    acts.appendChild(el('a',{href:'https://www.ghin.com/golfers/lookup',style:{fontSize:'11px',color:'#4ade80',textDecoration:'none'}},['GHIN']));
+    acts.appendChild(btn('btng','Edit',()=>showEditPlayer(p,card)));
+    acts.appendChild(btn('btng','✕',async()=>{await deletePlayer(p.id)}));
+    row.appendChild(acts);
+    card.appendChild(row);
+  });
 
-  function getTeams() {
-    if (partner === null) return null;
-    if (partner === "alone") return { captOI:[curCaptainOI], fieldOI:[0,1,2,3,4].filter(i=>i!==curCaptainOI) };
-    const captTeam = [curCaptainOI, partner];
-    return { captOI:captTeam, fieldOI:[0,1,2,3,4].filter(i=>!captTeam.includes(i)) };
-  }
+  card.appendChild(btn('btn','+ Add Player',()=>showEditPlayer(null,card)));
+  wrap.appendChild(card);
+  wrap.appendChild(renderNavBar('roster'));
+  return wrap;
+}
 
-  function computeLedger(h, curLedger) {
-    const cd = activeRound?.courseData;
-    const hdcps = cd ? computeHdcpInfo(cd, orderPlayers).courseHdcps : null;
-    return applyHoleMoney(h, curLedger, activeDpp, hdcps);
-  }
+function showEditPlayer(p,card){
+  const existing=div('',null,{marginTop:'12px',borderTop:'1px solid #1a3a1a',paddingTop:'12px'});
+  existing.appendChild(div('sec',[p?'Edit Player':'Add Player']));
+  const nameInp=inp('text','Full name',p?.name||'',null);
+  const idxInp=inp('number','Handicap Index',p?.lastIndex||p?.index||'',null,{style:{marginBottom:'8px'}});
+  idxInp.step='0.1';
+  existing.appendChild(nameInp);existing.appendChild(idxInp);
 
-  async function finalizeHole() {
-    const teams = getTeams();
-    const realPts = pts === 7 ? 14 : (pts || 0);
-    const holeRec = {
-      hole: currentHole + 1,
-      captainOI: curCaptainOI,
-      partnerOI: partner === "alone" ? null : partner,
-      partner,
-      winner,
-      pts: realPts,
-      dpp: activeDpp,
-      ledgerAfter: null,
-    };
-    const nl = computeLedger(holeRec, ledger);
-    holeRec.ledgerAfter = nl;
-    const newHoles = [...holes, holeRec];
+  existing.appendChild(div('sec',['Payment']));
+  const methods=['venmo','cashapp','paypal','zelle','applepay','cash'];
+  let selMethod=p?.paymentMethod||'cash';
+  const mrow=div('row');
+  methods.forEach(m=>{
+    const b=btn('btng',PAY_LABELS[m],()=>{selMethod=m;b.style.borderColor='#4ade80';b.style.color='#4ade80'});
+    if(m===selMethod){b.style.borderColor='#4ade80';b.style.color='#4ade80';}
+    mrow.appendChild(b);
+  });
+  existing.appendChild(mrow);
+  const handleInp=inp('text',PAY_PH[selMethod]||'',p?.paymentHandle||'',null);
+  existing.appendChild(handleInp);
 
-    await updateRound(roundId, {
-      holes: newHoles,
-      activeDpp,
-      [`ledger`]: nl,
+  const saveB=btn('btn','Save',async()=>{
+    const name=nameInp.value.trim();
+    const idx=idxInp.value;
+    const handle=handleInp.value.trim();
+    if(!name)return;
+    await savePlayer({id:p?.id,name,lastIndex:idx,index:idx,paymentMethod:selMethod,paymentHandle:handle,rounds:p?.rounds||0,wins:p?.wins||0,totalMoney:p?.totalMoney||0,totalHoles:p?.totalHoles||0,captainHoles:p?.captainHoles||0,captainMoney:p?.captainMoney||0});
+    existing.remove();
+  });
+  existing.appendChild(saveB);
+  existing.appendChild(btn('btnd','Cancel',()=>existing.remove()));
+  card.appendChild(existing);
+}
+
+function renderStats(){
+  const wrap=div('');
+  const hdr=div('hdr');hdr.appendChild(div('logo',['5-MAN']));hdr.appendChild(div('sub',['STATS']));
+  wrap.appendChild(hdr);
+
+  let tab='er';
+  const card=div('card');
+
+  function drawStats(){
+    card.innerHTML='';
+    const tabs=div('row');
+    [['er','Efficiency'],['cer','Captain ER'],['wins','Wins'],['money','Total $']].forEach(([k,lbl])=>{
+      const b=btn('btng',lbl,()=>{tab=k;drawStats()},{flex:'1',fontSize:'11px',padding:'8px 4px',...(tab===k?{borderColor:'#4ade80',color:'#4ade80'}:{})});
+      tabs.appendChild(b);
+    });
+    card.appendChild(tabs);
+
+    const ranked=[...STATE.players].filter(p=>p.rounds>0).sort((a,b)=>{
+      if(tab==='er'){const ea=(a.totalHoles||0)>0?(a.totalMoney||0)/a.totalHoles:-999;const eb=(b.totalHoles||0)>0?(b.totalMoney||0)/b.totalHoles:-999;return eb-ea;}
+      if(tab==='cer'){if((a.captainHoles||0)<10)return 1;if((b.captainHoles||0)<10)return -1;return((b.captainMoney||0)/b.captainHoles)-((a.captainMoney||0)/a.captainHoles);}
+      if(tab==='wins')return(b.wins||0)-(a.wins||0);
+      return(b.totalMoney||0)-(a.totalMoney||0);
     });
 
-    if (currentHole >= 17) {
-      await finishGame(nl, newHoles);
-    } else {
-      resetHoleUI();
-    }
+    if(ranked.length===0){card.appendChild(div('',['No stats yet'],{color:'#555',textAlign:'center',padding:'20px'}));return;}
+
+    ranked.forEach((p,i)=>{
+      const er=(p.totalHoles||0)>0?((p.totalMoney||0)/p.totalHoles).toFixed(2):'—';
+      const cer=(p.captainHoles||0)>=10?((p.captainMoney||0)/p.captainHoles).toFixed(2):'<10 holes';
+      const val=tab==='er'?'$'+er+'/h':tab==='cer'?'$'+cer+'/h':tab==='wins'?(p.wins||0)+' W':fmt(p.totalMoney||0);
+      const row=div('orow',null,{cursor:'default',borderLeft:i===0?'3px solid #f59e0b':'3px solid #1a3a1a'});
+      row.appendChild(div('',[i+1],{color:i===0?'#f59e0b':'#4ade80',fontWeight:'700',fontSize:'18px',minWidth:'24px'}));
+      const info=div('',null,{flex:'1'});
+      info.appendChild(div('',[p.name],{fontSize:'15px'}));
+      info.appendChild(div('',[(p.rounds||0)+' rds · '+(p.captainHoles||0)+' capt holes'],{fontSize:'11px',color:'#666'}));
+      row.appendChild(info);
+      row.appendChild(div('',[val],{fontSize:'15px',fontWeight:'700',color:'#e4ede4'}));
+      card.appendChild(row);
+    });
   }
+  drawStats();
+  wrap.appendChild(card);
+  wrap.appendChild(renderNavBar('stats'));
+  return wrap;
+}
 
-  async function finishGame(finalLedger, finalHoles) {
-    const cd = activeRound?.courseData;
-    const results = orderPlayers.map((p, i) => ({
-      playerId: activeRound.playerOrder[i],
-      name: p.name,
-      money: finalLedger[i]
-    }));
-    await completeRound(roundId, finalLedger, results);
-    await updatePlayerStats(
-      { playerOrder: activeRound.playerOrder, players: orderPlayers },
-      finalLedger,
-      finalHoles
-    );
-    setScreen("summary");
+function renderHistory(){
+  const wrap=div('');
+  const hdr=div('hdr');hdr.appendChild(div('logo',['5-MAN']));hdr.appendChild(div('sub',['HISTORY']));
+  wrap.appendChild(hdr);
+  if(STATE.history.length===0){
+    const c=div('card');c.appendChild(div('',['No rounds yet'],{color:'#555',textAlign:'center',padding:'20px'}));wrap.appendChild(c);
   }
+  STATE.history.forEach(r=>{
+    const card=div('card');
+    const top=div('row');
+    top.appendChild(div('',[r.date||''],{color:'#4ade80',fontSize:'13px',flex:'1'}));
+    top.appendChild(div('',['$'+(r.dpp||1)+'/pt · '+(r.gameCode||'')],{fontSize:'11px',color:'#555'}));
+    card.appendChild(top);
+    card.appendChild(div('',[(r.courseData?.name||'')],{fontSize:'12px',color:'#777',marginBottom:'8px'}));
+    (r.results||[]).sort((a,b)=>b.money-a.money).forEach((p,i)=>{
+      const row=div('row');
+      row.appendChild(div('',[p.name],{flex:'1',fontSize:'14px',color:i===0?'#f59e0b':'#e4ede4'}));
+      row.appendChild(div('',[fmt(p.money)],{fontWeight:'700',color:p.money>=0?'#4ade80':'#f87171'}));
+      card.appendChild(row);
+    });
+    wrap.appendChild(card);
+  });
+  wrap.appendChild(renderNavBar('history'));
+  return wrap;
+}
 
-  function resetHoleUI() {
-    setStep("captain"); setPartner(null);
-    setWinner(null); setPts(null);
-    setShowPress(false); setPressingPlayer(null); setPressCustomVal("");
-    setPassed([]);
-  }
+// ── New Round ─────────────────────────────────────────────────────────────────
+let NR={step:'players',selPlayers:Array(5).fill(null),dpp:'',pressMode:'custom',lightning:'16',cd:null,manual:{name:'',tee:'White',rating:'',slope:'',par:'72',holeHdcps:Array(18).fill(''),holePars:Array(18).fill('4')},manualMode:false,query:'',results:[],selClub:null,apiTees:[]};
 
-  async function applyPress() {
-    let newDpp;
-    const orig = parseFloat(activeRound?.dpp || 1);
-    if (activeRound?.pressMode === "custom") newDpp = parseFloat(pressCustomVal);
-    else newDpp = nextPressDpp(activeRound?.pressMode || "custom", orig, activeDpp);
-    if (!newDpp || isNaN(newDpp)) return;
-    setPressLog(pl => [...pl, { hole: currentHole+1, player: curCaptainOI, presser: pressingPlayer, fromDpp: activeDpp, toDpp: newDpp }]);
-    setActiveDpp(newDpp);
-    await updateRound(roundId, { activeDpp: newDpp });
-    setShowPress(false); setPressingPlayer(null); setPressCustomVal("");
-  }
+function renderNewRound(){
+  const wrap=div('');
+  const hdr=div('hdr');hdr.appendChild(div('logo',['5-MAN']));hdr.appendChild(div('sub',['NEW ROUND']));
+  wrap.appendChild(hdr);
 
-  async function saveHoleEdit(hIdx, updates) {
-    const newHoles = [...holes];
-    newHoles[hIdx] = { ...newHoles[hIdx], ...updates };
-    const cd = activeRound?.courseData;
-    const hdcps = cd ? computeHdcpInfo(cd, orderPlayers).courseHdcps : null;
-    // Replay from edited hole
-    let runLedger = hIdx === 0 ? [0,0,0,0,0] : [...(newHoles[hIdx-1].ledgerAfter || [0,0,0,0,0])];
-    for (let i = hIdx; i < newHoles.length; i++) {
-      runLedger = applyHoleMoney(newHoles[i], runLedger, newHoles[i].dpp || activeDpp, hdcps);
-      newHoles[i] = { ...newHoles[i], ledgerAfter: [...runLedger] };
-    }
-    await updateRound(roundId, { holes: newHoles, ledger: runLedger });
-    setEditingHole(null);
-  }
+  if(NR.step==='players'){
+    const card=div('card');
+    card.appendChild(div('sec',['Players — Enter in Tee Order']));
+    const warn=div('',['⚠️ Select 1–5 in tee order. Player 1 = Captain hole 1.'],{fontSize:'12px',color:'#f59e0b',background:'#100a00',border:'1px solid #2a1a00',borderRadius:'8px',padding:'9px 12px',marginBottom:'12px'});
+    card.appendChild(warn);
 
-  const negativePlayers = [0,1,2,3,4].filter(i => ledger[i] < 0);
-  const strokesThisHole = activeRound && hdcpInfo
-    ? [0,1,2,3,4].map(oi => hdcpInfo.sHoles[oi]?.includes(currentHole + 1))
-    : [false,false,false,false,false];
-
-  // Compute hdcpInfo when round is active
-  useEffect(() => {
-    if (activeRound?.courseData && orderPlayers.length === 5) {
-      setHdcpInfo(computeHdcpInfo(activeRound.courseData, orderPlayers));
-    }
-  }, [activeRound?.courseData, players]);
-
-  // ── SCREENS ───────────────────────────────────────────────────────────────
-
-  if (screen === "home") return (
-    <HomeScreen S={S} user={user} players={players} roundHistory={roundHistory||[]}
-      setScreen={setScreen} signOut={pinLogout}
-      onJoinRound={async (code) => {
-        const r = await getRoundByCode(code);
-        if (!r) { setJoinErr("Game not found"); return; }
-        setRoundId(r.id); setActiveRound(r); setIsScorekeeper(false);
-        setScreen("spectate");
-      }}
-      joinCode={joinCode} setJoinCode={setJoinCode} joinErr={joinErr} setJoinErr={setJoinErr}
-    />
-  );
-
-  if (screen === "roster") return (
-    <RosterScreen S={S} players={players} currentUser={user}
-      onSave={savePlayer} onDelete={deletePlayer} setScreen={setScreen} />
-  );
-
-  if (screen === "history") return (
-    <HistoryScreen S={S} roundHistory={roundHistory} players={players}
-      loadHistory={async () => { const h = await getRecentRounds(); setRoundHistory(h); }}
-      setScreen={setScreen} />
-  );
-
-  if (screen === "stats") return (
-    <StatsScreen S={S} players={players} setScreen={setScreen} />
-  );
-
-  if (screen === "newround") return (
-    <NewRoundScreen S={S} players={players} courses={courses} user={user}
-      onSaveCourse={saveCourse} onDeleteCourse={deleteCourse}
-      onStart={async (roundData, cd) => {
-        const hdcp = computeHdcpInfo(cd, roundData.orderPlayers);
-        const { id, gameCode } = await createRound({
-          ...roundData,
-          courseData: cd,
-          createdBy: user.uid,
-          dpp: roundData.dpp,
-          activeDpp: roundData.dpp,
+    NR.selPlayers.forEach((p,i)=>{
+      const slot=div('',null,{marginBottom:'10px'});
+      slot.appendChild(div('',['#'+(i+1)+' in tee order'],{fontSize:'11px',color:'#4ade80',marginBottom:'4px'}));
+      if(p){
+        const row=div('orow',null,{cursor:'default'});
+        row.appendChild(div('',[p.name],{flex:'1',fontSize:'14px'}));
+        row.appendChild(div('',['Idx '+(p.lastIndex||p.index||'?')],{fontSize:'12px',color:'#4ade80'}));
+        row.appendChild(btn('btng','✕',()=>{NR.selPlayers[i]=null;render()}));
+        slot.appendChild(row);
+      } else {
+        const avail=STATE.players.filter(pl=>!NR.selPlayers.some((sp,si)=>si!==i&&sp?.id===pl.id));
+        const brow=div('row');
+        avail.forEach(pl=>{
+          brow.appendChild(btn('btng',pl.name,()=>{NR.selPlayers[i]=pl;render()},{fontSize:'13px',padding:'8px 12px'}));
         });
-        setRoundId(id);
-        setActiveRound({ ...roundData, courseData: cd, gameCode, id, holes: [], status:"active" });
-        setHdcpInfo(hdcp);
-        setActiveDpp(roundData.dpp);
-        setLedger([0,0,0,0,0]);
-        setCurrentHole(0); setHoles([]); setPressLog([]);
-        setIsScorekeeper(true);
-        resetHoleUI();
-        setScreen("game");
-      }}
-    />
-  );
-
-  if (screen === "spectate" && activeRound) return (
-    <SpectateScreen S={S} round={activeRound} holes={holes} ledger={ledger}
-      orderPlayers={orderPlayers} currentHole={currentHole} setScreen={setScreen} fmt$={fmt$} />
-  );
-
-  if (screen === "game" && activeRound && isScorekeeper) {
-    const holeNum = currentHole + 1;
-    const teams = getTeams();
-    const captTeamOI = teams?.captOI || [];
-    const fieldOI = teams?.fieldOI || [];
-    const captTeamNames = captTeamOI.map(oi => orderPlayers[oi]?.name);
-    const fieldNames = fieldOI.map(oi => orderPlayers[oi]?.name);
-    const isLone = partner === "alone";
-
-    return (
-      <div style={S.root}>
-        {/* Game header */}
-        <div style={S.gameHdr}>
-          <div>
-            <div style={{fontSize:26,fontWeight:700,letterSpacing:2,color:"#c5e8c5"}}>HOLE {holeNum}</div>
-          </div>
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:11,color:"#555"}}>{activeRound.courseData?.name}</div>
-            <div style={{fontSize:12,color:"#f59e0b",fontWeight:700}}>{activeRound.gameCode}</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontSize:16,color:"#4ade80",fontWeight:700}}>${activeDpp}/pt</div>
-            <div style={{fontSize:10,color:"#555"}}>{holeNum}/18</div>
-          </div>
-        </div>
-
-        {/* Ledger */}
-        <div style={S.ledgerStrip}>
-          {orderPlayers.map((p, oi) => (
-            <div key={oi} style={S.ledgerItem}>
-              <div style={{fontSize:10,color:"#555"}}>{p.name?.split(" ")[0]}</div>
-              <div style={{fontSize:13,fontWeight:700,color:ledger[oi]>=0?"#4ade80":"#f87171"}}>{fmt$(ledger[oi])}</div>
-              {strokesThisHole[oi] && <div style={{fontSize:9,color:"#f59e0b"}}>+1</div>}
-            </div>
-          ))}
-        </div>
-        {Math.round(ledger.reduce((s,v)=>s+v,0)) !== 0 && (
-          <div style={{background:"#3a0000",fontSize:11,color:"#f87171",textAlign:"center",padding:"3px 8px"}}>
-            ⚠️ Ledger imbalance — check scoring
-          </div>
-        )}
-
-        <div style={S.card}>
-          {/* Press */}
-          {step === "captain" && holeNum > 1 && (
-            <div style={S.pressZone}>
-              {!showPress ? (
-                <button style={{background:"transparent",border:"1px solid #2a1a00",borderRadius:8,color:"#f59e0b",padding:"9px 14px",fontSize:12,cursor:"pointer",fontFamily:"'Georgia',serif",width:"100%"}}
-                  onClick={() => setShowPress(true)}>💰 Declare Press</button>
-              ) : (
-                <>
-                  <div style={{fontSize:10,color:"#f59e0b",letterSpacing:2,marginBottom:8}}>WHO IS PRESSING?</div>
-                  <div style={S.row}>
-                    {negativePlayers.map(oi => (
-                      <button key={oi}
-                        style={{...S.btnGhost,fontSize:13,...(pressingPlayer===oi?{border:"1px solid #f59e0b",color:"#f59e0b"}:{})}}
-                        onClick={() => setPressingPlayer(oi)}>
-                        {orderPlayers[oi]?.name}
-                      </button>
-                    ))}
-                    {negativePlayers.length === 0 && <div style={{fontSize:12,color:"#666"}}>No one is negative.</div>}
-                  </div>
-                  {pressingPlayer !== null && (
-                    activeRound?.pressMode === "custom" ? (
-                      <div style={S.row}>
-                        <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="New $/pt" type="number" step="0.5"
-                          value={pressCustomVal} onChange={e => setPressCustomVal(e.target.value)} />
-                        <button style={{...S.btnSm,marginLeft:6}} onClick={applyPress}>Set</button>
-                      </div>
-                    ) : (
-                      <div style={{marginTop:8}}>
-                        <div style={{fontSize:13,color:"#e4ede4"}}>
-                          {activeRound?.pressMode==="double" ? `$${activeDpp} → $${activeDpp*2}/pt` : `$${activeDpp} → $${activeDpp+parseFloat(activeRound?.dpp||1)}/pt`}
-                        </div>
-                        <button style={{...S.btn,marginTop:8}} onClick={applyPress}>Confirm Press</button>
-                      </div>
-                    )
-                  )}
-                  <button style={{...S.btnGhost,width:"100%",marginTop:8}} onClick={() => { setShowPress(false); setPressingPlayer(null); }}>Cancel</button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Step 1: Captain picks */}
-          {step === "captain" && (
-            <>
-              <div style={S.sec}>
-                ⛳ {captainPlayer?.name} is Captain
-                {isLightningHole(currentHole) && <span style={{color:"#f59e0b",fontSize:9,marginLeft:6}}>⚡ Lightning</span>}
-                {getFixedCaptain(currentHole) !== null && <span style={{color:"#888",fontSize:9,marginLeft:6}}>(fixed)</span>}
-              </div>
-              {isLightningHole(currentHole) && (
-                <button style={{...S.btnGhost,width:"100%",marginBottom:10}}
-                  onClick={() => setPassed(p => [...p, curCaptainOI])}>
-                  Pass → next biggest loser
-                </button>
-              )}
-              {/* Stroke display */}
-              <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}}>
-                {orderPlayers.map((p, oi) => (
-                  <div key={oi} style={{fontSize:12,color:strokesThisHole[oi]?"#f59e0b":"#444",background:strokesThisHole[oi]?"#1a1000":"#080d08",borderRadius:6,padding:"4px 8px",border:strokesThisHole[oi]?"1px solid #3a2000":"1px solid #1a3a1a"}}>
-                    {p.name?.split(" ")[0]} {strokesThisHole[oi]?"+1":"—"}
-                  </div>
-                ))}
-              </div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                <button style={{...S.pickBtn,minWidth:"100%",...(partner==="alone"?S.pickBtnOn:{})}}
-                  onClick={() => setPartner("alone")}>
-                  🦅 Lone Captain
-                  <div style={{fontSize:11,color:partner==="alone"?"#f59e0b":"#555",marginTop:3}}>win or lose 2×</div>
-                </button>
-                {[0,1,2,3,4].filter(oi => oi !== curCaptainOI).map(oi => (
-                  <button key={oi} style={{...S.pickBtn,...(partner===oi?S.pickBtnOn:{})}}
-                    onClick={() => setPartner(oi)}>
-                    {orderPlayers[oi]?.name}
-                    {strokesThisHole[oi] && <span style={{fontSize:10,color:"#f59e0b",marginLeft:4}}>+1</span>}
-                  </button>
-                ))}
-              </div>
-              {partner !== null && (
-                <>
-                  <div style={{display:"flex",gap:8,margin:"12px 0"}}>
-                    <div style={{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}}>
-                      <div style={{fontSize:9,letterSpacing:2,color:"#4ade80",marginBottom:4}}>CAPT'S TEAM</div>
-                      {captTeamNames.map(n => <div key={n} style={{fontSize:14,color:"#c5e8c5"}}>{n}</div>)}
-                    </div>
-                    <div style={{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}}>
-                      <div style={{fontSize:9,letterSpacing:2,color:"#888",marginBottom:4}}>FIELD</div>
-                      {fieldNames.map(n => <div key={n} style={{fontSize:14,color:"#aaa"}}>{n}</div>)}
-                    </div>
-                  </div>
-                  <button style={S.btn} onClick={() => setStep("result")}>Enter Result →</button>
-                </>
-              )}
-            </>
-          )}
-
-          {/* Step 2: Result */}
-          {step === "result" && (
-            <>
-              <div style={S.sec}>Who Won Hole {holeNum}?</div>
-              <div style={{display:"flex",gap:8,marginBottom:14}}>
-                <div style={{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}}>
-                  <div style={{fontSize:9,letterSpacing:2,color:"#4ade80",marginBottom:4}}>CAPT'S TEAM</div>
-                  {captTeamNames.map(n => <div key={n} style={{fontSize:13,color:"#c5e8c5"}}>{n}</div>)}
-                </div>
-                <div style={{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}}>
-                  <div style={{fontSize:9,letterSpacing:2,color:"#888",marginBottom:4}}>FIELD</div>
-                  {fieldNames.map(n => <div key={n} style={{fontSize:13,color:"#aaa"}}>{n}</div>)}
-                </div>
-              </div>
-              <div style={{display:"flex",gap:6}}>
-                {[{k:"captain",lbl:"Captain's Team"},{k:"field",lbl:"Field"},{k:"none",lbl:"No Blood"}].map(({k,lbl}) => (
-                  <button key={k} style={{...S.winBtn,flex:k==="none"?0.7:1,...(winner===k?S.winBtnOn:{})}}
-                    onClick={() => { setWinner(k); if(k==="none") setPts(null); }}>
-                    {lbl}
-                  </button>
-                ))}
-              </div>
-              {winner && winner !== "none" && (
-                <>
-                  <div style={S.sec}>How Many Points?</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5,margin:"8px 0"}}>
-                    {[1,2,3,4,5,6,7].map(p => (
-                      <button key={p} style={{...S.ptBtn,...(pts===p?S.ptBtnOn:{})}} onClick={() => setPts(p)}>
-                        {p}{p===7&&<div style={{fontSize:8,color:"#f59e0b",marginTop:2}}>×2</div>}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {/* Money preview */}
-              {winner && (winner==="none"||pts) && (() => {
-                const realPts = pts===7?14:pts;
-                const ptVal = (realPts||0)*activeDpp*(isLone?2:1);
-                return (
-                  <div style={S.moneyBox}>
-                    <div style={{color:"#4ade80",fontSize:10,letterSpacing:2,marginBottom:6}}>MONEY PREVIEW</div>
-                    {winner==="none"?<div style={{color:"#555"}}>No blood.</div>:
-                      isLone?(winner==="captain"
-                        ?<><div style={{color:"#e4ede4"}}>{realPts}pts × ${activeDpp} × 2 = <b>${ptVal}</b>/player</div><div style={{color:"#4ade80",marginTop:4}}>{captainPlayer?.name} collects <b>${ptVal*4}</b></div></>
-                        :<><div style={{color:"#e4ede4"}}>{realPts}pts × ${activeDpp} × 2 = <b>${ptVal}</b>/player</div><div style={{color:"#f87171",marginTop:4}}>{captainPlayer?.name} pays <b>${ptVal*4}</b></div></>
-                      ):captTeamOI.length===3?(
-                        <><div style={{color:"#4ade80"}}>Winners each +<b>${ptVal}</b></div><div style={{color:"#f87171",marginTop:4}}>Losers split <b>-${ptVal*3}</b></div></>
-                      ):(
-                        <><div style={{color:"#f87171"}}>Losers each -<b>${ptVal}</b></div><div style={{color:"#4ade80",marginTop:4}}>Winners split <b>+${ptVal*3}</b></div></>
-                      )
-                    }
-                    {pts===7&&<div style={{color:"#f59e0b",fontSize:11,marginTop:6}}>🔥 7 pts → 14</div>}
-                  </div>
-                );
-              })()}
-              <button style={{...S.btn,opacity:(winner==="none"||pts)?1:0.4}}
-                onClick={() => { if(winner==="none"||pts) finalizeHole(); }}>
-                {holeNum<18?`Confirm → Hole ${holeNum+1}`:"Finish Round"}
-              </button>
-              <button style={S.btnDark} onClick={() => setStep("captain")}>← Change Teams</button>
-            </>
-          )}
-        </div>
-
-        {/* Edit closed holes */}
-        {holes.length > 0 && (
-          <div style={{...S.card,marginTop:0}}>
-            <div style={S.sec}>Edit Closed Holes</div>
-            {holes.map((h, hIdx) => (
-              <div key={hIdx}>
-                {editingHole === hIdx ? (
-                  <EditHoleForm h={h} hIdx={hIdx} orderPlayers={orderPlayers}
-                    onSave={saveHoleEdit} onCancel={() => setEditingHole(null)} S={S} />
-                ) : (
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#080d08",borderRadius:8,padding:"8px 12px",marginBottom:6}}>
-                    <div>
-                      <span style={{fontSize:13,color:"#4ade80",fontWeight:700}}>H{h.hole}</span>
-                      <span style={{fontSize:12,color:"#777",marginLeft:8}}>
-                        {orderPlayers[h.captainOI]?.name}{h.partner==="alone"?" 🦅":h.partner!==null?` +${orderPlayers[h.partnerOI]?.name}`:""}
-                      </span>
-                      <span style={{fontSize:12,marginLeft:8,color:h.winner==="none"?"#444":h.winner==="captain"?"#4ade80":"#f87171"}}>
-                        {h.winner==="none"?"No blood":`${h.winner==="captain"?"Capt":"Field"} ${h.pts}pts`}
-                      </span>
-                    </div>
-                    <button style={{...S.btnGhost,fontSize:11,padding:"4px 10px"}} onClick={() => setEditingHole(hIdx)}>Edit</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Edit handicaps */}
-        <div style={{...S.card,marginTop:0,marginBottom:80}}>
-          <div style={S.sec}>Handicaps (edit goes forward only)</div>
-          {orderPlayers.map((p, oi) => (
-            <div key={oi} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-              <span style={{flex:1,fontSize:13,color:"#aaa"}}>{p.name}</span>
-              <input style={{...S.inp,width:70,marginBottom:0,textAlign:"center"}}
-                type="number" step="0.1" defaultValue={p.index}
-                onBlur={async e => {
-                  const newIdx = e.target.value;
-                  await savePlayer({ ...p, lastIndex: newIdx });
-                }} />
-              <span style={{fontSize:12,color:"#4ade80",minWidth:60}}>Hdcp {hdcpInfo?.courseHdcps[oi]}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (screen === "summary") return (
-    <SummaryScreen S={S} round={activeRound} holes={holes} ledger={ledger}
-      orderPlayers={orderPlayers} players={players} pressLog={pressLog}
-      setScreen={setScreen} fmt$={fmt$} />
-  );
-
-  return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CAPTAIN</div></div>
-      <div style={{textAlign:"center",padding:40,color:"#555"}}>Loading...</div>
-    </div>
-  );
-}
-
-// ─── Login Screen (PIN-based) ─────────────────────────────────────────────────
-function LoginScreen({ S, onLogin }) {
-  const [mode, setMode] = useState("select"); // select | pin | register
-  const [players, setPlayers] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [pin, setPin] = useState("");
-  const [name, setName] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    db.collection("players").orderBy("name").get().then(snap => {
-      setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        slot.appendChild(brow);
+      }
+      card.appendChild(slot);
     });
-  }, []);
 
-  async function handlePinLogin() {
-    if (pin.length !== 4) { setErr("Enter your 4-digit PIN"); return; }
-    setLoading(true); setErr("");
-    const result = await pinSignIn(selectedPlayer.id, pin);
-    setLoading(false);
-    if (result.error) { setErr(result.error); return; }
-    const user = { uid: selectedPlayer.id, name: selectedPlayer.name };
-    localStorage.setItem("5mc_user", JSON.stringify(user));
-    onLogin(user);
+    card.appendChild(div('sec',['Dollar Per Point']));
+    const dppInp=inp('number','e.g. 3',NR.dpp,e=>{NR.dpp=e.target.value},{step:'0.5'});
+    card.appendChild(dppInp);
+
+    card.appendChild(div('sec',['Press Style']));
+    const prow=div('row');
+    [['custom','Custom'],['increment','Fixed +'],['double','Double']].forEach(([k,lbl])=>{
+      prow.appendChild(btn('btng',lbl,()=>{NR.pressMode=k;render()},{flex:'1',fontSize:'12px',...(NR.pressMode===k?{borderColor:'#4ade80',color:'#4ade80'}:{})}));
+    });
+    card.appendChild(prow);
+
+    card.appendChild(div('sec',['Lightning Round']));
+    const lrow=div('row');
+    [['16','Holes 16,17,18'],['14','Holes 14,17,18']].forEach(([k,lbl])=>{
+      lrow.appendChild(btn('btng',lbl,()=>{NR.lightning=k;render()},{flex:'1',fontSize:'13px',...(NR.lightning===k?{borderColor:'#4ade80',color:'#4ade80'}:{})}));
+    });
+    card.appendChild(lrow);
+
+    const ok=NR.selPlayers.every(Boolean)&&NR.dpp;
+    card.appendChild(btn('btn','Next: Course →',()=>{
+      NR.dpp=dppInp.value||NR.dpp;
+      if(ok)NR.step='course';render();
+    },{opacity:ok?'1':'0.4'}));
+    card.appendChild(btn('btnd','← Home',()=>setState({screen:'home'})));
+    wrap.appendChild(card);
   }
 
-  async function handleRegister() {
-    if (!name.trim()) { setErr("Enter your name"); return; }
-    if (newPin.length !== 4) { setErr("PIN must be 4 digits"); return; }
-    if (newPin !== confirmPin) { setErr("PINs don't match"); return; }
-    setLoading(true); setErr("");
-    const result = await pinRegister(name.trim(), newPin);
-    setLoading(false);
-    if (result.error) { setErr(result.error); return; }
-    const user = { uid: result.user.uid, name: result.user.name };
-    localStorage.setItem("5mc_user", JSON.stringify(user));
-    onLogin(user);
-  }
+  else if(NR.step==='course'){
+    const card=div('card');
+    loadCourses();
 
-  return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CAPTAIN AT THE CREEK</div></div>
-      <div style={S.card}>
-        <div style={{textAlign:"center",marginBottom:16}}>
-          <div style={{fontSize:48,marginBottom:8}}>⛳</div>
-          <div style={{fontSize:18,color:"#c5e8c5"}}>Welcome to 5-Man Captain</div>
-        </div>
-
-        {mode === "select" && (
-          <>
-            <div style={S.sec}>Who Are You?</div>
-            {players.length === 0 && <div style={{color:"#555",marginBottom:10,fontSize:13}}>No players yet — register below.</div>}
-            {players.map(p => (
-              <button key={p.id} style={{...S.btnDark,marginTop:6,textAlign:"left",padding:"12px 14px"}}
-                onClick={() => { setSelectedPlayer(p); setMode("pin"); setErr(""); setPin(""); }}>
-                {p.name}
-              </button>
-            ))}
-            <button style={{...S.btn,marginTop:16}} onClick={() => { setMode("register"); setErr(""); }}>
-              + New Player / First Time
-            </button>
-          </>
-        )}
-
-        {mode === "pin" && selectedPlayer && (
-          <>
-            <div style={S.sec}>Enter PIN — {selectedPlayer.name}</div>
-            <input style={{...S.inp,fontSize:24,textAlign:"center",letterSpacing:12}}
-              type="password" inputMode="numeric" maxLength={4} placeholder="••••"
-              value={pin} onChange={e => setPin(e.target.value.replace(/\D/g,"").slice(0,4))} />
-            {err && <div style={S.errBox}>{err}</div>}
-            <button style={{...S.btn,opacity:pin.length===4?1:0.4}}
-              onClick={handlePinLogin}>{loading?"...":"Sign In"}</button>
-            <button style={S.btnDark} onClick={() => { setMode("select"); setErr(""); setPin(""); }}>← Back</button>
-          </>
-        )}
-
-        {mode === "register" && (
-          <>
-            <div style={S.sec}>Create Your Profile</div>
-            <input style={S.inp} placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
-            <input style={{...S.inp,fontSize:20,textAlign:"center",letterSpacing:8}}
-              type="password" inputMode="numeric" maxLength={4} placeholder="Create 4-digit PIN"
-              value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g,"").slice(0,4))} />
-            <input style={{...S.inp,fontSize:20,textAlign:"center",letterSpacing:8}}
-              type="password" inputMode="numeric" maxLength={4} placeholder="Confirm PIN"
-              value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g,"").slice(0,4))} />
-            {err && <div style={S.errBox}>{err}</div>}
-            <button style={{...S.btn,opacity:(name&&newPin.length===4&&confirmPin.length===4)?1:0.4}}
-              onClick={handleRegister}>{loading?"...":"Create Profile"}</button>
-            <button style={S.btnDark} onClick={() => { setMode("select"); setErr(""); }}>← Back</button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Home Screen ──────────────────────────────────────────────────────────────
-function HomeScreen({ S, user, players, roundHistory, setScreen, signOut, onJoinRound, joinCode, setJoinCode, joinErr, setJoinErr }) {
-  const myProfile = players.find(p => p.googleUid === user?.uid);
-  return (
-    <div style={S.root}>
-      <div style={S.hdr}>
-        <div style={S.logo}>5-MAN</div>
-        <div style={S.logoSub}>CAPTAIN AT THE CREEK</div>
-        {myProfile && <div style={{fontSize:11,color:"#4ade80",marginTop:4}}>👤 {myProfile.name}</div>}
-      </div>
-      <div style={S.card}>
-        <button style={S.btn} onClick={() => setScreen("newround")}>⛳ New Round</button>
-        <div style={S.sec}>Join a Round</div>
-        <div style={S.row}>
-          <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Game code (e.g. CREEK-42)"
-            value={joinCode} onChange={e => { setJoinCode(e.target.value.toUpperCase()); setJoinErr(""); }} />
-          <button style={S.btnSm} onClick={() => onJoinRound(joinCode)}>Join</button>
-        </div>
-        {joinErr && <div style={S.errBox}>{joinErr}</div>}
-        <button style={S.btnDark} onClick={() => setScreen("roster")}>👤 Player Roster</button>
-        <button style={S.btnDark} onClick={() => setScreen("history")}>📋 Round History</button>
-        <button style={S.btnDark} onClick={() => setScreen("stats")}>📊 Stats & Rankings</button>
-        <button style={S.btnDanger} onClick={pinLogout}>Sign Out</button>
-      </div>
-      {roundHistory.length > 0 && (
-        <div style={S.card}>
-          <div style={S.sec}>Last Round</div>
-          <div style={{fontSize:12,color:"#666",marginBottom:6}}>{roundHistory[0]?.courseData?.name} · {roundHistory[0]?.date || ""}</div>
-          {(roundHistory[0].results||[]).sort((a,b)=>b.money-a.money).map((r,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-              <span style={{fontSize:14,color:i===0?"#f59e0b":"#e4ede4"}}>{r.name}</span>
-              <span style={{fontWeight:700,color:r.money>=0?"#4ade80":"#f87171"}}>{fmt$(r.money)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      <NavBar screen="home" setScreen={setScreen} S={S} />
-    </div>
-  );
-}
-
-// ─── Spectate Screen ──────────────────────────────────────────────────────────
-function SpectateScreen({ S, round, holes, ledger, orderPlayers, currentHole, setScreen, fmt$ }) {
-  return (
-    <div style={S.root}>
-      <div style={S.gameHdr}>
-        <div style={{fontSize:20,fontWeight:700,color:"#c5e8c5"}}>HOLE {currentHole + 1}</div>
-        <div style={{textAlign:"center"}}>
-          <div style={{fontSize:11,color:"#555"}}>{round.courseData?.name}</div>
-          <div style={{fontSize:14,color:"#f59e0b",fontWeight:700}}>{round.gameCode}</div>
-        </div>
-        <div style={{fontSize:12,color:"#4ade80"}}>👁 Viewing</div>
-      </div>
-      <div style={S.ledgerStrip}>
-        {orderPlayers.map((p, oi) => (
-          <div key={oi} style={S.ledgerItem}>
-            <div style={{fontSize:10,color:"#555"}}>{p.name?.split(" ")[0]}</div>
-            <div style={{fontSize:13,fontWeight:700,color:ledger[oi]>=0?"#4ade80":"#f87171"}}>{fmt$(ledger[oi])}</div>
-          </div>
-        ))}
-      </div>
-      <div style={S.card}>
-        <div style={S.sec}>Hole History</div>
-        {holes.map(h => (
-          <div key={h.hole} style={{display:"flex",justifyContent:"space-between",marginBottom:6,padding:"6px 0",borderBottom:"1px solid #1a3a1a"}}>
-            <span style={{color:"#4ade80",fontWeight:700}}>H{h.hole}</span>
-            <span style={{color:"#aaa",fontSize:13}}>{orderPlayers[h.captainOI]?.name}{h.partner==="alone"?" 🦅":""}</span>
-            <span style={{color:h.winner==="none"?"#444":h.winner==="captain"?"#4ade80":"#f87171"}}>
-              {h.winner==="none"?"No blood":`${h.winner==="captain"?"Capt":"Field"} ${h.pts}pts`}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div style={{padding:"0 12px"}}>
-        <button style={S.btnDark} onClick={() => setScreen("home")}>← Home</button>
-      </div>
-      <NavBar screen="spectate" setScreen={setScreen} S={S} />
-    </div>
-  );
-}
-
-// ─── Stats Screen ─────────────────────────────────────────────────────────────
-function StatsScreen({ S, players, setScreen }) {
-  const [tab, setTab] = useState("er"); // er | cer | wins | money
-
-  const ranked = [...players].filter(p => p.rounds > 0).sort((a, b) => {
-    if (tab === "er") {
-      const erA = (a.totalHoles||0) > 0 ? (a.totalMoney||0) / a.totalHoles : -999;
-      const erB = (b.totalHoles||0) > 0 ? (b.totalMoney||0) / b.totalHoles : -999;
-      return erB - erA;
+    if(STATE.courses.length>0&&!NR.cd&&!NR.manualMode){
+      card.appendChild(div('sec',['Saved Courses']));
+      STATE.courses.forEach(c=>{
+        const row=div('orow',null,{cursor:'pointer'});
+        row.onclick=()=>{NR.cd=c;NR.step='confirm';render()};
+        const info=div('',null,{flex:'1'});
+        info.appendChild(div('',[c.name],{fontSize:'14px'}));
+        info.appendChild(div('',[c.tee+' — Rtg '+c.rating+' / Slp '+c.slope],{fontSize:'11px',color:'#666'}));
+        row.appendChild(info);
+        row.appendChild(btn('btng','✕',async e=>{e.stopPropagation();await db.collection('courses').doc(c.id).delete();loadCourses();}));
+        card.appendChild(row);
+      });
+      card.appendChild(div('',null,{borderBottom:'1px solid #1a3a1a',margin:'10px 0'}));
     }
-    if (tab === "cer") {
-      if ((a.captainHoles||0) < 10) return 1;
-      if ((b.captainHoles||0) < 10) return -1;
-      const cerA = (a.captainMoney||0) / a.captainHoles;
-      const cerB = (b.captainMoney||0) / b.captainHoles;
-      return cerB - cerA;
+
+    if(!NR.manualMode){
+      card.appendChild(div('sec',['Find Course']));
+      const srow=div('row');
+      const qi=inp('text','Search course…',NR.query,e=>{NR.query=e.target.value},{style:{flex:'1',marginBottom:'0'}});
+      qi.onkeydown=e=>{if(e.key==='Enter')doSearch()};
+      srow.appendChild(qi);
+      srow.appendChild(btn('btnsm','Search',doSearch));
+      card.appendChild(srow);
+
+      if(NR.results.length>0&&!NR.selClub){
+        NR.results.slice(0,8).forEach(c=>{
+          const row=div('orow',null,{cursor:'pointer'});
+          row.onclick=async()=>{
+            NR.selClub=c;NR.results=[];
+            const r=await fetch(GOLF_API+'/courses/'+(c.id||c.course_id),{headers:{Authorization:'Key '+GOLF_KEY}});
+            const d=await r.json();const co=d.course||d;
+            NR.apiTees=co.tees||co.tee_boxes||[];render();
+          };
+          row.appendChild(div('',[c.club_name||c.name||'?'],{fontSize:'14px'}));
+          card.appendChild(row);
+        });
+      }
+      if(NR.selClub&&NR.apiTees.length>0){
+        card.appendChild(div('',['✓ '+(NR.selClub.club_name||NR.selClub.name)],{fontSize:'13px',color:'#4ade80',marginBottom:'8px'}));
+        card.appendChild(div('sec',['Select Tees']));
+        NR.apiTees.forEach(t=>{
+          const row=div('orow',null,{cursor:'pointer',border:NR.cd?.tee===t.tee_name?'1px solid #4ade80':'1px solid #1a3a1a'});
+          row.onclick=()=>{
+            const holes=t.holes||[];
+            NR.cd={name:NR.selClub.club_name||NR.selClub.name,tee:t.tee_name,rating:String(t.course_rating||''),slope:String(t.slope_rating||''),par:String(holes.reduce((s,h)=>s+(parseInt(h.par)||4),0)),holeHdcps:holes.map(h=>String(h.handicap||'')),holePars:holes.map(h=>String(h.par||'4'))};
+            render();
+          };
+          const info=div('',null,{flex:'1'});
+          info.appendChild(div('',[t.tee_name],{fontSize:'14px'}));
+          info.appendChild(div('',['Rtg '+t.course_rating+' / Slp '+t.slope_rating],{fontSize:'11px',color:'#666'}));
+          row.appendChild(info);
+          if(NR.cd?.tee===t.tee_name)row.appendChild(div('',['✓'],{color:'#4ade80'}));
+          card.appendChild(row);
+        });
+      }
+      const brow=div('row',null,{marginTop:'10px'});
+      brow.appendChild(btn('btnd','← Back',()=>{NR.step='players';render()},{flex:'1',marginTop:'0'}));
+      if(NR.cd)brow.appendChild(btn('btn','Next →',()=>{NR.step='confirm';render()},{flex:'2',marginTop:'0'}));
+      card.appendChild(brow);
+      card.appendChild(btn('btng','Enter manually',()=>{NR.manualMode=true;render()},{width:'100%',marginTop:'8px'}));
+    } else {
+      // Manual entry
+      card.appendChild(div('sec',['Manual Entry']));
+      const ni=inp('text','Course name',NR.manual.name,e=>{NR.manual.name=e.target.value});card.appendChild(ni);
+      const trow=div('row');
+      ['Black','Blue','White','Gold','Red'].forEach(t=>{
+        trow.appendChild(btn('btng',t,()=>{NR.manual.tee=t;render()},{...(NR.manual.tee===t?{background:'#1a5c1a',borderColor:'#4ade80',color:'#e4ede4'}:{})}));
+      });
+      card.appendChild(trow);
+      const r3=div('row');
+      const ri=inp('number','Rating',NR.manual.rating,e=>{NR.manual.rating=e.target.value},{style:{flex:'1',marginBottom:'0'}});
+      const si=inp('number','Slope',NR.manual.slope,e=>{NR.manual.slope=e.target.value},{style:{flex:'1',marginBottom:'0'}});
+      const pi=inp('number','Par',NR.manual.par,e=>{NR.manual.par=e.target.value},{style:{flex:'1',marginBottom:'0'}});
+      r3.appendChild(ri);r3.appendChild(si);r3.appendChild(pi);card.appendChild(r3);
+      card.appendChild(div('sec',['Hole Handicaps']));
+      const grid=div('',null,{display:'grid',gridTemplateColumns:'repeat(9,1fr)',gap:'3px'});
+      NR.manual.holeHdcps.forEach((h,i)=>{
+        const cell=div('',null,{background:'#080d08',border:'1px solid #1a3a1a',borderRadius:'5px',padding:'3px 2px',textAlign:'center'});
+        cell.appendChild(div('',['H'+(i+1)],{fontSize:'9px',color:'#4ade80'}));
+        const hi2=inp('number','',h,e=>{NR.manual.holeHdcps[i]=e.target.value},{style:{width:'100%',background:'transparent',border:'none',borderTop:'1px solid #1a3a1a',color:'#e4ede4',padding:'3px 0',fontSize:'11px',textAlign:'center',marginBottom:'0'}});
+        cell.appendChild(hi2);grid.appendChild(cell);
+      });
+      card.appendChild(grid);
+      const b2=div('row',null,{marginTop:'12px'});
+      b2.appendChild(btn('btnd','← Back',()=>{NR.manualMode=false;render()},{flex:'1',marginTop:'0'}));
+      b2.appendChild(btn('btn','Save & Continue →',async()=>{
+        const name=ni.value.trim();
+        if(!name)return;
+        NR.manual.name=name;NR.manual.rating=ri.value;NR.manual.slope=si.value;NR.manual.par=pi.value;
+        NR.manual.holeHdcps=Array.from(grid.querySelectorAll('input')).map(x=>x.value);
+        await saveCourse(NR.manual);NR.cd={...NR.manual};NR.step='confirm';render();
+      },{flex:'2',marginTop:'0'}));
+      card.appendChild(b2);
     }
-    if (tab === "wins") return (b.wins||0) - (a.wins||0);
-    return (b.totalMoney||0) - (a.totalMoney||0);
-  });
-
-  return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>STATS & RANKINGS</div></div>
-      <div style={S.card}>
-        <div style={{display:"flex",gap:6,marginBottom:12}}>
-          {[["er","Efficiency"],["cer","Captain ER"],["wins","Wins"],["money","Total $"]].map(([k,lbl]) => (
-            <button key={k} style={{...S.btnGhost,flex:1,fontSize:11,padding:"8px 4px",...(tab===k?{border:"1px solid #4ade80",color:"#4ade80"}:{})}}
-              onClick={() => setTab(k)}>{lbl}</button>
-          ))}
-        </div>
-        {ranked.length === 0 && <div style={{color:"#555",textAlign:"center",padding:20}}>No stats yet.</div>}
-        {ranked.map((p, i) => {
-          const er = (p.totalHoles||0) > 0 ? ((p.totalMoney||0) / p.totalHoles).toFixed(2) : "—";
-          const cer = (p.captainHoles||0) >= 10 ? ((p.captainMoney||0) / p.captainHoles).toFixed(2) : "< 10 holes";
-          const val = tab==="er" ? `$${er}/hole` : tab==="cer" ? `$${cer}/hole` : tab==="wins" ? `${p.wins||0} wins` : fmt$(p.totalMoney||0);
-          return (
-            <div key={p.id} style={{...S.orderRow,cursor:"default",borderLeft:i===0?"3px solid #f59e0b":"3px solid #1a3a1a"}}>
-              <span style={{color:i===0?"#f59e0b":"#4ade80",fontWeight:700,fontSize:18,minWidth:24}}>{i+1}</span>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15}}>{p.name}</div>
-                <div style={{fontSize:11,color:"#666"}}>{p.rounds||0} rounds · {p.captainHoles||0} captain holes</div>
-              </div>
-              <span style={{fontSize:15,fontWeight:700,color:"#e4ede4"}}>{val}</span>
-            </div>
-          );
-        })}
-      </div>
-      <NavBar screen="stats" setScreen={setScreen} S={S} />
-    </div>
-  );
-}
-
-// ─── History Screen ───────────────────────────────────────────────────────────
-function HistoryScreen({ S, roundHistory, players, loadHistory, setScreen }) {
-  useEffect(() => { loadHistory(); }, []);
-  return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>HISTORY</div></div>
-      {roundHistory.length === 0 ? (
-        <div style={S.card}><div style={{color:"#555",textAlign:"center",padding:20}}>No rounds yet.</div></div>
-      ) : roundHistory.map(r => (
-        <div key={r.id} style={S.card}>
-          <div style={{display:"flex",justifyContent:"space-between"}}>
-            <span style={{color:"#4ade80",fontSize:13}}>{r.completedAt?.toDate?.()?.toLocaleDateString() || r.date}</span>
-            <span style={{fontSize:12,color:"#555"}}>${r.dpp}/pt · {r.gameCode}</span>
-          </div>
-          <div style={{fontSize:12,color:"#777",marginBottom:8}}>{r.courseData?.name} — {r.courseData?.tee} tees</div>
-          {(r.results||[]).sort((a,b)=>b.money-a.money).map((p,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-              <span style={{fontSize:14,color:i===0?"#f59e0b":"#e4ede4"}}>{p.name}</span>
-              <span style={{fontWeight:700,color:p.money>=0?"#4ade80":"#f87171"}}>{fmt$(p.money)}</span>
-            </div>
-          ))}
-        </div>
-      ))}
-      <NavBar screen="history" setScreen={setScreen} S={S} />
-    </div>
-  );
-}
-
-// ─── Roster Screen ────────────────────────────────────────────────────────────
-function RosterScreen({ S, players, currentUser, onSave, onDelete, setScreen }) {
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name:"", index:"", paymentMethod:"venmo", paymentHandle:"" });
-
-  function startEdit(p) {
-    setEditing(p?.id || "new");
-    setForm(p ? { name:p.name, index:p.lastIndex||p.index||"", paymentMethod:p.paymentMethod||"venmo", paymentHandle:p.paymentHandle||"" } : { name:"", index:"", paymentMethod:"venmo", paymentHandle:"" });
+    wrap.appendChild(card);
   }
 
-  return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>ROSTER</div></div>
-      <div style={S.card}>
-        <div style={S.sec}>Players ({players.length})</div>
-        {players.map(p => (
-          <div key={p.id} style={{...S.orderRow,cursor:"default"}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:15}}>{p.name}</div>
-              <div style={{fontSize:11,color:"#666"}}>Idx {p.lastIndex||p.index} · {p.rounds||0} rds · {p.wins||0}W · {fmt$(p.totalMoney||0)}</div>
-              {p.paymentMethod && p.paymentMethod!=="cash" && (
-                <div style={{fontSize:11,color:"#4ade80"}}>{PAYMENT_LABELS[p.paymentMethod]}: {p.paymentHandle}</div>
-              )}
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>
-              <a href="https://www.ghin.com/golfers/lookup" target="_blank" rel="noreferrer" style={{fontSize:11,color:"#4ade80",textDecoration:"none"}}>GHIN</a>
-              <button style={{...S.btnGhost,fontSize:11,padding:"4px 8px"}} onClick={() => startEdit(p)}>Edit</button>
-              <button style={{...S.btnGhost,fontSize:11,padding:"4px 8px"}} onClick={() => onDelete(p.id)}>✕</button>
-            </div>
-          </div>
-        ))}
-
-        {editing ? (
-          <>
-            <div style={S.sec}>{editing==="new"?"Add Player":"Edit Player"}</div>
-            <input style={S.inp} placeholder="Full name" value={form.name} onChange={e => setForm({...form,name:e.target.value})} />
-            <input style={S.inp} placeholder="Handicap Index" type="number" step="0.1" value={form.index} onChange={e => setForm({...form,index:e.target.value})} />
-            <div style={S.sec}>Payment Method</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
-              {PAYMENT_METHODS.map(m => (
-                <button key={m} style={{...S.btnGhost,fontSize:12,padding:"7px 10px",...(form.paymentMethod===m?{border:"1px solid #4ade80",color:"#4ade80"}:{})}}
-                  onClick={() => setForm({...form,paymentMethod:m,paymentHandle:""})}>
-                  {PAYMENT_LABELS[m]}
-                </button>
-              ))}
-            </div>
-            {form.paymentMethod!=="cash"&&form.paymentMethod!=="applepay"&&(
-              <input style={S.inp} placeholder={PAYMENT_PLACEHOLDERS[form.paymentMethod]||"Handle"} value={form.paymentHandle}
-                onChange={e => setForm({...form,paymentHandle:e.target.value})} />
-            )}
-            <div style={{display:"flex",gap:8}}>
-              <button style={{...S.btn,flex:1}} onClick={() => {
-                const existing = editing !== "new" ? (players.find(r => r.id === editing) || {}) : {};
-                onSave({
-                  ...existing,
-                  id: editing === "new" ? undefined : editing,
-                  name: form.name,
-                  lastIndex: form.index,
-                  index: form.index,
-                  paymentMethod: form.paymentMethod,
-                  paymentHandle: form.paymentHandle,
-                  googleUid: editing === "new" ? currentUser?.uid : existing.googleUid,
-                });
-                setEditing(null);
-              }}>Save</button>
-              <button style={{...S.btnDark,flex:1,marginTop:0}} onClick={() => setEditing(null)}>Cancel</button>
-            </div>
-          </>
-        ) : (
-          <button style={S.btn} onClick={() => startEdit(null)}>+ Add Player</button>
-        )}
-      </div>
-      <NavBar screen="roster" setScreen={setScreen} S={S} />
-    </div>
-  );
+  else if(NR.step==='confirm'){
+    const cd=NR.cd;
+    const hdcp=computeHdcpForPlayers(cd,NR.selPlayers);
+    const card=div('card');
+    card.appendChild(div('sec',['Course Handicaps — '+cd.name+' ('+cd.tee+')']));
+    card.appendChild(div('',['Low: '+hdcp.low+' — strokes relative to this'],{fontSize:'11px',color:'#555',marginBottom:'10px'}));
+    NR.selPlayers.forEach((p,i)=>{
+      const row=div('',null,{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#080d08',borderRadius:'8px',padding:'10px 12px',marginBottom:'6px'});
+      const left=div('');
+      left.appendChild(div('',[(i+1)+'. '+p.name],{fontSize:'15px'}));
+      left.appendChild(div('',['Idx '+(p.lastIndex||p.index||'?')],{fontSize:'11px',color:'#888',marginLeft:'8px'}));
+      const right=div('',null,{textAlign:'right'});
+      right.appendChild(div('',['Hdcp '+hdcp.courseHdcps[i]],{fontSize:'15px',color:'#4ade80',fontWeight:'700'}));
+      if(hdcp.extras[i]>0)right.appendChild(div('',['+'+ hdcp.extras[i]+' stroke'+(hdcp.extras[i]>1?'s':'')],{fontSize:'11px',color:'#f59e0b'}));
+      row.appendChild(left);row.appendChild(right);card.appendChild(row);
+    });
+    const summary=div('',null,{background:'#080d08',borderRadius:'8px',padding:'10px 12px',marginTop:'8px'});
+    [['$/pt','$'+NR.dpp],['Press',NR.pressMode],['Lightning','⚡ Holes '+(NR.lightning==='14'?'14,17,18':'16,17,18')]].forEach(([k,v])=>{
+      const r=div('',null,{display:'flex',justifyContent:'space-between',marginBottom:'4px'});
+      r.appendChild(div('',[k],{color:'#888'}));r.appendChild(div('',[v],{color:'#e4ede4'}));summary.appendChild(r);
+    });
+    card.appendChild(summary);
+    card.appendChild(btn('btn','⛳ Start Round',async()=>{
+      const{id,gameCode}=await createRound({playerOrder:NR.selPlayers.map(p=>p.id),lightningRound:NR.lightning,pressMode:NR.pressMode,dpp:parseFloat(NR.dpp),date:new Date().toLocaleDateString()},cd);
+      STATE.roundId=id;STATE.isKeeper=true;
+      STATE.hdcpInfo=computeHdcpForPlayers(cd,NR.selPlayers);
+      STATE.dpp=parseFloat(NR.dpp);
+      STATE.ledger=[0,0,0,0,0];STATE.curHole=0;STATE.holes=[];STATE.pressLog=[];
+      listenRound(id);
+      resetHole();
+      // Show game code
+      alert('Game code: '+gameCode+'\nShare this with your group!');
+      setState({screen:'game'});
+    }));
+    card.appendChild(btn('btnd','← Back',()=>{NR.step='course';render()}));
+    wrap.appendChild(card);
+  }
+  return wrap;
 }
 
-// ─── Summary Screen ───────────────────────────────────────────────────────────
-function SummaryScreen({ S, round, holes, ledger, orderPlayers, players, pressLog, setScreen, fmt$ }) {
-  const sorted = [...orderPlayers].map((p,i) => ({...p,oi:i,money:ledger[i]||0})).sort((a,b)=>b.money-a.money);
-  const today = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  const note = `5-Man Captain · ${round?.courseData?.name||'Golf'} · ${today}`;
-  const playersWithPayment = orderPlayers.map((p, i) => {
-    const rp = players.find(rp => rp.id === round?.playerOrder?.[i]);
-    return { ...p, oi:i, paymentMethod: rp?.paymentMethod||'cash', paymentHandle: rp?.paymentHandle||'' };
-  });
-  const settlements = computeSettlement(playersWithPayment, ledger);
+async function doSearch(){
+  const qi=document.querySelector('#app input[placeholder="Search course…"]');
+  const q=qi?qi.value.trim():NR.query;
+  if(!q)return;NR.query=q;
+  try{
+    const r=await fetch(GOLF_API+'/courses?name='+encodeURIComponent(q),{headers:{Authorization:'Key '+GOLF_KEY}});
+    const d=await r.json();
+    NR.results=d.courses||d.data||(Array.isArray(d)?d:[]);
+  }catch{NR.results=[];}
+  render();
+}
 
-  return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>FINAL</div><div style={S.logoSub}>5-MAN CAPTAIN</div></div>
-      <div style={S.card}>
-        <div style={S.sec}>Final Standings — {round?.courseData?.name}</div>
-        {sorted.map((p,rank) => (
-          <div key={p.oi} style={{...S.orderRow,cursor:"default",borderLeft:rank===0?"3px solid #f59e0b":rank===sorted.length-1?"3px solid #f87171":"3px solid #1a3a1a"}}>
-            <span style={{color:rank===0?"#f59e0b":"#4ade80",fontWeight:700,fontSize:18,minWidth:24}}>{rank+1}</span>
-            <span style={{flex:1,fontSize:16}}>{p.name}</span>
-            <span style={{fontSize:20,fontWeight:700,color:p.money>=0?"#4ade80":"#f87171"}}>{fmt$(p.money)}</span>
-          </div>
-        ))}
-      </div>
-      <div style={S.card}>
-        <div style={S.sec}>Settle Up</div>
-        {settlements.length===0?<div style={{color:"#555",textAlign:"center",padding:12}}>All square!</div>:
-          settlements.map((txn,i) => {
-            const link = paymentLink(txn.to.paymentMethod, txn.to.paymentHandle, txn.amount, note);
-            const colors = { venmo:'#3D95CE', cashapp:'#00D632', paypal:'#003087', zelle:'#6D1ED4' };
-            const btnLabels = { venmo:'Pay Venmo', cashapp:'Pay Cash App', paypal:'Pay PayPal' };
-            return (
-              <div key={i} style={{background:"#080d08",borderRadius:10,padding:"12px 14px",marginBottom:8,border:"1px solid #1a3a1a"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div>
-                    <span style={{fontSize:15,color:"#f87171",fontWeight:700}}>{txn.from.name}</span>
-                    <span style={{fontSize:13,color:"#555",margin:"0 8px"}}>→</span>
-                    <span style={{fontSize:15,color:"#4ade80",fontWeight:700}}>{txn.to.name}</span>
-                  </div>
-                  <span style={{fontSize:20,fontWeight:700}}>${txn.amount}</span>
-                </div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <span style={{fontSize:11,color:"#555"}}>{txn.to.paymentMethod==="cash"?"Cash":txn.to.paymentHandle}</span>
-                  {txn.to.paymentMethod==="cash"?<span style={{fontSize:12,color:"#888",fontStyle:"italic"}}>Cash</span>:
-                    link?<a href={link} style={{background:colors[txn.to.paymentMethod]||"#1a5c1a",color:"#fff",borderRadius:8,padding:"8px 14px",fontSize:13,textDecoration:"none",fontFamily:"'Georgia',serif",fontWeight:700}}>
-                      {btnLabels[txn.to.paymentMethod]||"Pay"}
-                    </a>:<span style={{fontSize:12,color:"#888"}}>Open {PAYMENT_LABELS[txn.to.paymentMethod]} manually</span>
-                  }
-                </div>
-              </div>
-            );
-          })
+function computeHdcpForPlayers(cd,players){
+  const par=parseInt(cd.par)||72;
+  const slope=parseFloat(cd.slope)||113;
+  const rating=parseFloat(cd.rating)||par;
+  const courseHdcps=players.map(p=>calcHdcp(p.lastIndex||p.index||0,slope,rating,par));
+  const low=Math.min(...courseHdcps);
+  const extras=courseHdcps.map(ch=>Math.max(0,ch-low));
+  const sHoles=extras.map(e=>strokeHoles(e,cd.holeHdcps||[]));
+  return{courseHdcps,low,extras,sHoles};
+}
+
+// ── Game screen ───────────────────────────────────────────────────────────────
+function renderGame(){
+  if(!STATE.round)return div('card',['Loading round...']);
+  const wrap=div('');
+  const hi=STATE.curHole;
+  const hNum=hi+1;
+  const captOI=captainFor(hi,STATE.ledger,STATE.passed);
+  const orderPlayers=STATE.round.playerOrder.map(pid=>STATE.players.find(p=>p.id===pid)||{name:'?',index:'0'});
+  const captName=orderPlayers[captOI]?.name||'?';
+  const cd=STATE.round.courseData;
+  const hdcps=STATE.hdcpInfo?STATE.hdcpInfo.courseHdcps:null;
+  const strokesHere=STATE.hdcpInfo?[0,1,2,3,4].map(oi=>STATE.hdcpInfo.sHoles[oi]?.includes(hNum)):[false,false,false,false,false];
+
+  // Header
+  const ghdr=div('gamehdr');
+  const hl=div('');hl.appendChild(div('',['HOLE '+hNum],{fontSize:'26px',fontWeight:'700',letterSpacing:'2px',color:'#c5e8c5'}));
+  ghdr.appendChild(hl);
+  const hm=div('',null,{textAlign:'center'});
+  hm.appendChild(div('',[cd?.name||''],{fontSize:'11px',color:'#555'}));
+  hm.appendChild(div('',[STATE.round.gameCode||''],{fontSize:'12px',color:'#f59e0b',fontWeight:'700'}));
+  ghdr.appendChild(hm);
+  ghdr.appendChild(div('',['$'+STATE.dpp+'/pt'],{fontSize:'16px',color:'#4ade80',fontWeight:'700'}));
+  wrap.appendChild(ghdr);
+
+  // Ledger
+  const ledDiv=div('ledger');
+  orderPlayers.forEach((p,oi)=>{
+    const li=div('li');
+    li.appendChild(div('',[p.name?.split(' ')[0]||'?'],{fontSize:'10px',color:'#555'}));
+    li.appendChild(div('',[fmt(STATE.ledger[oi])],{fontSize:'13px',fontWeight:'700',color:STATE.ledger[oi]>=0?'#4ade80':'#f87171'}));
+    if(strokesHere[oi])li.appendChild(div('',['*'],{fontSize:'9px',color:'#f59e0b'}));
+    ledDiv.appendChild(li);
+  });
+  wrap.appendChild(ledDiv);
+
+  const card=div('card');
+
+  // Press zone
+  if(STATE.step==='captain'&&hNum>1){
+    const pz=div('press');
+    if(!STATE.showPress){
+      pz.appendChild(btn('',['💰 Declare Press'],()=>setState({showPress:true}),{background:'transparent',border:'1px solid #2a1a00',borderRadius:'8px',color:'#f59e0b',padding:'9px 14px',fontSize:'12px',cursor:'pointer',fontFamily:"'Georgia',serif",width:'100%'}));
+    } else {
+      pz.appendChild(div('',['WHO IS PRESSING?'],{fontSize:'10px',color:'#f59e0b',letterSpacing:'2px',marginBottom:'8px'}));
+      const negPlayers=[0,1,2,3,4].filter(i=>STATE.ledger[i]<0);
+      if(negPlayers.length===0){pz.appendChild(div('',['No one is negative'],{fontSize:'12px',color:'#666'}));}
+      const prow=div('row');
+      negPlayers.forEach(oi=>{
+        prow.appendChild(btn('btng',orderPlayers[oi]?.name||'?',()=>setState({presser:oi}),{...(STATE.presser===oi?{borderColor:'#f59e0b',color:'#f59e0b'}:{})}));
+      });
+      pz.appendChild(prow);
+      if(STATE.presser!==null){
+        if(STATE.round.pressMode==='custom'){
+          const pi=inp('number','New $/pt',STATE.pressVal,e=>STATE.pressVal=e.target.value,{step:'0.5',style:{marginBottom:'8px'}});
+          pz.appendChild(pi);
+          pz.appendChild(btn('btn','Set',async()=>{
+            const nv=parseFloat(pi.value);if(!nv)return;
+            STATE.pressLog.push({hole:hNum,presser:STATE.presser,fromDpp:STATE.dpp,toDpp:nv});
+            STATE.dpp=nv;
+            await db.collection('rounds').doc(STATE.roundId).update({activeDpp:nv});
+            setState({showPress:false,presser:null,pressVal:''});
+          }));
+        } else {
+          const orig=parseFloat(STATE.round.dpp||1);
+          const nv=STATE.round.pressMode==='double'?STATE.dpp*2:STATE.dpp+orig;
+          pz.appendChild(div('',['$'+STATE.dpp+' → $'+nv+'/pt'],{fontSize:'13px',color:'#e4ede4',marginBottom:'8px'}));
+          pz.appendChild(btn('btn','Confirm Press',async()=>{
+            STATE.pressLog.push({hole:hNum,presser:STATE.presser,fromDpp:STATE.dpp,toDpp:nv});
+            STATE.dpp=nv;
+            await db.collection('rounds').doc(STATE.roundId).update({activeDpp:nv});
+            setState({showPress:false,presser:null});
+          }));
         }
-        <div style={{fontSize:11,color:"#444",marginTop:8,textAlign:"center"}}>{note}</div>
-      </div>
-      {(pressLog||[]).length>0&&(
-        <div style={S.card}>
-          <div style={S.sec}>Presses</div>
-          {pressLog.map((pl,i) => (
-            <div key={i} style={{fontSize:13,color:"#aaa",marginBottom:4}}>
-              H{pl.hole} — {orderPlayers[pl.presser]?.name} pressed: ${pl.fromDpp}→${pl.toDpp}/pt
-            </div>
-          ))}
-        </div>
-      )}
-      <div style={S.card}>
-        <div style={S.sec}>Hole by Hole</div>
-        {holes.map(h => (
-          <div key={h.hole} style={{marginBottom:8,paddingBottom:8,borderBottom:"1px solid #1a3a1a"}}>
-            <div style={{display:"flex",justifyContent:"space-between"}}>
-              <span style={{color:"#4ade80",fontSize:13,fontWeight:700}}>Hole {h.hole}</span>
-              <span style={{fontSize:11,color:"#555"}}>${h.dpp}/pt</span>
-            </div>
-            <div style={{fontSize:12,color:"#777",marginTop:2}}>
-              Capt: {orderPlayers[h.captainOI]?.name}{h.partner==="alone"?" 🦅 Lone":h.partner!==null?` + ${orderPlayers[h.partnerOI]?.name}`:""}
-            </div>
-            <div style={{fontSize:13,marginTop:2,color:h.winner==="none"?"#444":h.winner==="captain"?"#4ade80":"#f87171"}}>
-              {h.winner==="none"?"No blood":`${h.winner==="captain"?"Capt's Team":"Field"} — ${h.pts} pts`}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{padding:"0 12px 80px"}}>
-        <button style={S.btn} onClick={() => setScreen("home")}>← Home</button>
-      </div>
-      <NavBar screen="summary" setScreen={setScreen} S={S} />
-    </div>
-  );
-}
-
-// ─── New Round Screen ─────────────────────────────────────────────────────────
-function NewRoundScreen({ S, players, courses, user, onSaveCourse, onDeleteCourse, onStart }) {
-  const [step, setStep] = useState("players");
-  const [selPlayers, setSelPlayers] = useState(Array(5).fill(null));
-  const [dpp, setDpp] = useState("");
-  const [pressMode, setPressMode] = useState("custom");
-  const [lightningRound, setLightningRound] = useState("16");
-  const [courseData, setCourseData] = useState(null);
-  const [manualMode, setManualMode] = useState(false);
-  const [manual, setManual] = useState({ name:"", tee:"White", rating:"", slope:"", par:"72", holeHdcps:Array(18).fill(""), holePars:Array(18).fill("4") });
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [searchErr, setSearchErr] = useState("");
-  const [selectedClub, setSelectedClub] = useState(null);
-  const [apiTees, setApiTees] = useState([]);
-
-  const usedIds = selPlayers.filter(Boolean).map(p => p.id);
-  const availablePlayers = players.filter(p => !usedIds.includes(p.id));
-
-  async function doSearch() {
-    if (!query.trim()) return;
-    setSearching(true); setResults([]); setSearchErr("");
-    try {
-      const r = await fetch(`${GOLF_API}/courses?name=${encodeURIComponent(query)}`, { headers: { Authorization: `Key ${API_KEY}` } });
-      if (!r.ok) { setSearchErr(`API error ${r.status}`); setSearching(false); return; }
-      const d = await r.json();
-      const list = d.courses || d.data || (Array.isArray(d) ? d : []);
-      list.length ? setResults(list) : setSearchErr("Not found — try manual entry.");
-    } catch { setSearchErr("Search failed — try manual entry."); }
-    setSearching(false);
+      }
+      pz.appendChild(btn('btnd','Cancel',()=>setState({showPress:false,presser:null})));
+    }
+    card.appendChild(pz);
   }
 
-  async function pickClub(club) {
-    setSelectedClub(club); setResults([]);
-    try {
-      const r = await fetch(`${GOLF_API}/courses/${club.id||club.course_id}`, { headers: { Authorization: `Key ${API_KEY}` } });
-      if (!r.ok) { setApiTees([]); return; }
-      const d = await r.json();
-      const c = d.course || d;
-      setApiTees(c.tees || c.tee_boxes || []);
-    } catch { setApiTees([]); }
+  // Step 1: Captain picks
+  if(STATE.step==='captain'){
+    card.appendChild(div('sec',['⛳ '+captName+' is Captain'+(isLightning(hi)?' ⚡':'')+((fixedCaptain(hi)!==null)?' (fixed)':'')]));
+    if(isLightning(hi)){
+      card.appendChild(btn('btng','Pass → next biggest loser',()=>{STATE.passed=[...STATE.passed,captOI];render()},{width:'100%',marginBottom:'10px'}));
+    }
+    // Strokes
+    const srow=div('row',null,{marginBottom:'12px',flexWrap:'wrap'});
+    orderPlayers.forEach((p,oi)=>{
+      srow.appendChild(div('',[(p.name?.split(' ')[0]||'?')+' '+(strokesHere[oi]?'+1':'—')],{fontSize:'12px',color:strokesHere[oi]?'#f59e0b':'#444',background:strokesHere[oi]?'#1a1000':'#080d08',borderRadius:'6px',padding:'4px 8px',border:strokesHere[oi]?'1px solid #3a2000':'1px solid #1a3a1a'}));
+    });
+    card.appendChild(srow);
+
+    // Partner buttons
+    const bwrap=div('',null,{display:'flex',flexWrap:'wrap',gap:'6px'});
+    const lone=btn('pickbtn'+(STATE.partner==='alone'?' on':''),'🦅 Lone Captain\n2×',()=>setState({partner:'alone'}));
+    lone.style.minWidth='100%';bwrap.appendChild(lone);
+    [0,1,2,3,4].filter(oi=>oi!==captOI).forEach(oi=>{
+      const b=btn('pickbtn'+(STATE.partner===oi?' on':''),orderPlayers[oi]?.name+(strokesHere[oi]?' +1':''),()=>setState({partner:oi}));
+      bwrap.appendChild(b);
+    });
+    card.appendChild(bwrap);
+
+    if(STATE.partner!==null){
+      const captTeam=STATE.partner==='alone'?[captOI]:[captOI,STATE.partner];
+      const field=[0,1,2,3,4].filter(i=>!captTeam.includes(i));
+      const tbox=div('',null,{display:'flex',gap:'8px',margin:'12px 0'});
+      const ct=div('',null,{flex:'1',background:'#080d08',borderRadius:'8px',padding:'10px 12px'});
+      ct.appendChild(div('',['CAPT\'S TEAM'],{fontSize:'9px',letterSpacing:'2px',color:'#4ade80',marginBottom:'4px'}));
+      captTeam.forEach(oi=>ct.appendChild(div('',[orderPlayers[oi]?.name||'?'],{fontSize:'14px',color:'#c5e8c5'})));
+      const ft=div('',null,{flex:'1',background:'#080d08',borderRadius:'8px',padding:'10px 12px'});
+      ft.appendChild(div('',['FIELD'],{fontSize:'9px',letterSpacing:'2px',color:'#888',marginBottom:'4px'}));
+      field.forEach(oi=>ft.appendChild(div('',[orderPlayers[oi]?.name||'?'],{fontSize:'14px',color:'#aaa'})));
+      tbox.appendChild(ct);tbox.appendChild(ft);card.appendChild(tbox);
+      card.appendChild(btn('btn','Enter Result →',()=>setState({step:'result'})));
+    }
   }
 
-  function pickApiTee(tee) {
-    const holes = tee.holes || [];
-    const holeHdcps = holes.map(h => String(h.handicap||""));
-    const holePars = holes.map(h => String(h.par||"4"));
-    const par = holePars.reduce((s,p) => s+(parseInt(p)||4), 0);
-    setCourseData({ name:selectedClub.club_name||selectedClub.name, tee:tee.tee_name, rating:String(tee.course_rating||""), slope:String(tee.slope_rating||""), par:String(par), holeHdcps, holePars });
+  // Step 2: Result
+  if(STATE.step==='result'){
+    const captTeam=STATE.partner==='alone'?[captOI]:[captOI,STATE.partner];
+    const field=[0,1,2,3,4].filter(i=>!captTeam.includes(i));
+    card.appendChild(div('sec',['Who Won Hole '+hNum+'?']));
+
+    const tbox=div('',null,{display:'flex',gap:'8px',marginBottom:'14px'});
+    const ct=div('',null,{flex:'1',background:'#080d08',borderRadius:'8px',padding:'10px 12px'});
+    ct.appendChild(div('',["CAPT'S TEAM"],{fontSize:'9px',letterSpacing:'2px',color:'#4ade80',marginBottom:'4px'}));
+    captTeam.forEach(oi=>ct.appendChild(div('',[orderPlayers[oi]?.name||'?'],{fontSize:'13px',color:'#c5e8c5'})));
+    const ft=div('',null,{flex:'1',background:'#080d08',borderRadius:'8px',padding:'10px 12px'});
+    ft.appendChild(div('',['FIELD'],{fontSize:'9px',letterSpacing:'2px',color:'#888',marginBottom:'4px'}));
+    field.forEach(oi=>ft.appendChild(div('',[orderPlayers[oi]?.name||'?'],{fontSize:'13px',color:'#aaa'})));
+    tbox.appendChild(ct);tbox.appendChild(ft);card.appendChild(tbox);
+
+    const wrow=div('row');
+    [{k:'captain',l:"Captain's Team"},{k:'field',l:'Field'},{k:'none',l:'No Blood'}].forEach(({k,l})=>{
+      wrow.appendChild(btn('winbtn'+(STATE.winner===k?' on':''),l,()=>setState({winner:k,pts:k==='none'?null:STATE.pts}),{flex:k==='none'?'0.7':'1'}));
+    });
+    card.appendChild(wrow);
+
+    if(STATE.winner&&STATE.winner!=='none'){
+      card.appendChild(div('sec',['How Many Points?']));
+      const pgrid=div('',null,{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'5px',margin:'8px 0'});
+      [1,2,3,4,5,6,7].forEach(p=>{
+        const b=btn('ptbtn'+(STATE.pts===p?' on':''),p===7?p+'\n×2':String(p),()=>setState({pts:p}));
+        pgrid.appendChild(b);
+      });
+      card.appendChild(pgrid);
+    }
+
+    // Money preview
+    if(STATE.winner&&(STATE.winner==='none'||STATE.pts)){
+      const rpts=STATE.pts===7?14:(STATE.pts||0);
+      const ptVal=rpts*STATE.dpp*(STATE.partner==='alone'?2:1);
+      const mbox=div('mbox');
+      mbox.appendChild(div('',['MONEY PREVIEW'],{color:'#4ade80',fontSize:'10px',letterSpacing:'2px',marginBottom:'6px'}));
+      if(STATE.winner==='none'){mbox.appendChild(div('',['No blood.'],{color:'#555'}));}
+      else if(STATE.partner==='alone'){
+        mbox.appendChild(div('',[rpts+' pts × $'+STATE.dpp+' × 2 = $'+ptVal+'/player'],{color:'#e4ede4'}));
+        mbox.appendChild(div('',[captName+(STATE.winner==='captain'?' collects':' pays')+' $'+(ptVal*4)],{color:STATE.winner==='captain'?'#4ade80':'#f87171',marginTop:'4px',fontWeight:'700'}));
+      } else if(captTeam.length===3){
+        mbox.appendChild(div('',['Winners: each +$'+ptVal],{color:'#4ade80'}));
+        mbox.appendChild(div('',['Losers split -$'+(ptVal*3)],{color:'#f87171',marginTop:'4px'}));
+      } else {
+        mbox.appendChild(div('',['Losers: each -$'+ptVal],{color:'#f87171'}));
+        mbox.appendChild(div('',['Winners split +$'+(ptVal*3)],{color:'#4ade80',marginTop:'4px'}));
+      }
+      if(STATE.pts===7)mbox.appendChild(div('',['🔥 7 pts → 14'],{color:'#f59e0b',fontSize:'11px',marginTop:'6px'}));
+      card.appendChild(mbox);
+    }
+
+    const ok=STATE.winner==='none'||STATE.pts;
+    card.appendChild(btn('btn',hNum<18?'Confirm → Hole '+(hNum+1):'Finish Round',()=>{if(ok)finalizeHole()},{opacity:ok?'1':'0.4'}));
+    card.appendChild(btn('btnd','← Change Teams',()=>setState({step:'captain'})));
   }
 
-  const cd = manualMode ? manual : courseData;
-  const hdcpPreview = cd && selPlayers.every(Boolean) ? computeHdcpInfo(cd, selPlayers) : null;
+  wrap.appendChild(card);
 
-  if (step === "players") return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>NEW ROUND</div></div>
-      <div style={S.card}>
-        <div style={S.sec}>Players — Enter in Tee Order</div>
-        <div style={{fontSize:12,color:"#f59e0b",background:"#100a00",border:"1px solid #2a1a00",borderRadius:8,padding:"9px 12px",marginBottom:12}}>
-          ⚠️ Select players 1–5 in tee order. Player 1 = Captain hole 1.
-        </div>
-        {selPlayers.map((p, i) => (
-          <div key={i} style={{marginBottom:10}}>
-            <div style={{fontSize:11,color:"#4ade80",marginBottom:4}}>#{i+1} in tee order</div>
-            {p ? (
-              <div style={{...S.orderRow,cursor:"default"}}>
-                <span style={{flex:1,fontSize:14}}>{p.name}</span>
-                <span style={{fontSize:12,color:"#4ade80"}}>Idx {p.lastIndex||p.index}</span>
-                <button style={{...S.btnGhost,fontSize:11,padding:"4px 8px"}} onClick={() => { const np=[...selPlayers]; np[i]=null; setSelPlayers(np); }}>✕</button>
-              </div>
-            ) : (
-              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                {players.filter(pl => !selPlayers.filter((_,si)=>si!==i).some(sp=>sp?.id===pl.id)).map(pl => (
-                  <button key={pl.id} style={{...S.btnGhost,fontSize:13,padding:"8px 12px"}}
-                    onClick={() => { const np=[...selPlayers]; np[i]=pl; setSelPlayers(np); }}>
-                    {pl.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-        <div style={S.sec}>Dollar Per Point</div>
-        <input style={S.inp} placeholder="e.g. 3" type="number" step="0.5" value={dpp} onChange={e => setDpp(e.target.value)} />
-        <div style={S.sec}>Press Style</div>
-        <div style={S.row}>
-          {[["custom","Custom"],["increment","Fixed +"],["double","Double"]].map(([k,lbl]) => (
-            <button key={k} style={{...S.btnGhost,flex:1,fontSize:12,...(pressMode===k?{border:"1px solid #4ade80",color:"#4ade80"}:{})}}
-              onClick={() => setPressMode(k)}>{lbl}</button>
-          ))}
-        </div>
-        <div style={S.sec}>Lightning Round</div>
-        <div style={S.row}>
-          {[["16","Holes 16,17,18"],["14","Holes 14,17,18"]].map(([k,lbl]) => (
-            <button key={k} style={{...S.btnGhost,flex:1,fontSize:13,...(lightningRound===k?{border:"1px solid #4ade80",color:"#4ade80"}:{})}}
-              onClick={() => setLightningRound(k)}>{lbl}</button>
-          ))}
-        </div>
-        <button style={{...S.btn,opacity:selPlayers.every(Boolean)&&dpp?1:0.4}}
-          onClick={() => selPlayers.every(Boolean)&&dpp&&setStep("course")}>
-          Next: Course →
-        </button>
-        <button style={S.btnDark} onClick={() => setStep("home")}>← Home</button>
-      </div>
-    </div>
-  );
-
-  if (step === "course") return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>SELECT COURSE</div></div>
-      <div style={S.card}>
-        {courses.length > 0 && !courseData && !manualMode && (
-          <>
-            <div style={S.sec}>Saved Courses</div>
-            {courses.map(c => (
-              <div key={c.id} style={{...S.orderRow,cursor:"pointer"}} onClick={() => setCourseData(c)}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:14,color:"#e4ede4"}}>{c.name}</div>
-                  <div style={{fontSize:11,color:"#666"}}>{c.tee} — Rtg {c.rating} / Slp {c.slope}</div>
-                </div>
-                <button style={{...S.btnGhost,fontSize:11,padding:"4px 8px"}} onClick={e => { e.stopPropagation(); onDeleteCourse(c.id); }}>✕</button>
-              </div>
-            ))}
-            <div style={{borderBottom:"1px solid #1a3a1a",margin:"10px 0"}} />
-          </>
-        )}
-        {!manualMode ? (
-          <>
-            <div style={S.sec}>Find Course</div>
-            <div style={S.row}>
-              <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Search course…" value={query}
-                onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key==="Enter"&&doSearch()} />
-              <button style={S.btnSm} onClick={doSearch}>{searching?"…":"Search"}</button>
-            </div>
-            {searchErr && <div style={S.errBox}>{searchErr}</div>}
-            {results.length>0&&!selectedClub&&results.slice(0,8).map((c,i) => (
-              <div key={c.id||i} style={{...S.orderRow,cursor:"pointer"}} onClick={() => pickClub(c)}>
-                <div>
-                  <div style={{fontSize:14,color:"#e4ede4"}}>{c.club_name||c.name}</div>
-                  <div style={{fontSize:11,color:"#666"}}>{c.city}{c.state?`, ${c.state}`:""}</div>
-                </div>
-              </div>
-            ))}
-            {selectedClub&&apiTees.length>0&&(
-              <>
-                <div style={{fontSize:13,color:"#4ade80",marginBottom:8}}>✓ {selectedClub.club_name||selectedClub.name}</div>
-                <div style={S.sec}>Select Tees</div>
-                {apiTees.map(t => (
-                  <div key={t.tee_name} style={{...S.orderRow,cursor:"pointer",border:courseData?.tee===t.tee_name?"1px solid #4ade80":"1px solid #1a3a1a"}}
-                    onClick={() => pickApiTee(t)}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:14,color:"#e4ede4"}}>{t.tee_name}</div>
-                      <div style={{fontSize:11,color:"#666"}}>Rtg {t.course_rating} / Slp {t.slope_rating}</div>
-                    </div>
-                    {courseData?.tee===t.tee_name&&<span style={{color:"#4ade80"}}>✓</span>}
-                  </div>
-                ))}
-              </>
-            )}
-            <div style={{display:"flex",gap:8,marginTop:10}}>
-              <button style={{...S.btnDark,flex:1,marginTop:0}} onClick={() => setStep("players")}>← Back</button>
-              {courseData&&<button style={{...S.btn,flex:2,marginTop:0}} onClick={() => setStep("confirm")}>Next →</button>}
-            </div>
-            <button style={{...S.btnGhost,width:"100%",marginTop:8}} onClick={() => setManualMode(true)}>Enter manually</button>
-          </>
-        ) : (
-          <>
-            <div style={S.sec}>Manual Entry</div>
-            <input style={S.inp} placeholder="Course name" value={manual.name} onChange={e => setManual({...manual,name:e.target.value})} />
-            <div style={S.row}>
-              {["Black","Blue","White","Gold","Red"].map(t => (
-                <button key={t} style={{...S.teeBtn,...(manual.tee===t?S.teeBtnOn:{})}} onClick={() => setManual({...manual,tee:t})}>{t}</button>
-              ))}
-            </div>
-            <div style={S.row}>
-              <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Rating" type="number" value={manual.rating} onChange={e => setManual({...manual,rating:e.target.value})} />
-              <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Slope" type="number" value={manual.slope} onChange={e => setManual({...manual,slope:e.target.value})} />
-              <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Par" type="number" value={manual.par} onChange={e => setManual({...manual,par:e.target.value})} />
-            </div>
-            <div style={S.sec}>Hole Handicap Ratings</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:3}}>
-              {Array.from({length:18},(_,i) => (
-                <div key={i} style={S.holeCell}>
-                  <div style={{fontSize:9,color:"#4ade80"}}>H{i+1}</div>
-                  <input style={{width:"100%",background:"transparent",border:"none",borderTop:"1px solid #1a3a1a",color:"#e4ede4",padding:"3px 0",fontSize:11,textAlign:"center",outline:"none",fontFamily:"'Georgia',serif",marginTop:2}}
-                    type="number" value={manual.holeHdcps[i]}
-                    onChange={e => { const a=[...manual.holeHdcps]; a[i]=e.target.value; setManual({...manual,holeHdcps:a}); }} />
-                </div>
-              ))}
-            </div>
-            <div style={{display:"flex",gap:8,marginTop:12}}>
-              <button style={{...S.btnDark,flex:1,marginTop:0}} onClick={() => setManualMode(false)}>← Back</button>
-              <button style={{...S.btn,flex:2,marginTop:0}} onClick={async () => { await onSaveCourse(manual); setCourseData(manual); setStep("confirm"); }}>
-                Save & Continue →
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-
-  if (step === "confirm") return (
-    <div style={S.root}>
-      <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CONFIRM ROUND</div></div>
-      <div style={S.card}>
-        <div style={S.sec}>Course Handicaps — {cd?.name} ({cd?.tee})</div>
-        <div style={{fontSize:11,color:"#555",marginBottom:10}}>Low: {hdcpPreview?.low} — strokes relative to this.</div>
-        {selPlayers.map((p,i) => (
-          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#080d08",borderRadius:8,padding:"10px 12px",marginBottom:6}}>
-            <div>
-              <span style={{fontSize:15}}>{i+1}. {p.name}</span>
-              <span style={{fontSize:11,color:"#888",marginLeft:8}}>Idx {p.lastIndex||p.index}</span>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <span style={{fontSize:15,color:"#4ade80",fontWeight:700}}>Hdcp {hdcpPreview?.courseHdcps[i]}</span>
-              {hdcpPreview?.extras[i]>0&&<div style={{fontSize:11,color:"#f59e0b"}}>+{hdcpPreview.extras[i]} stroke{hdcpPreview.extras[i]>1?"s":""}</div>}
-            </div>
-          </div>
-        ))}
-        <div style={{background:"#080d08",borderRadius:8,padding:"10px 12px",marginTop:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-            <span style={{color:"#888"}}>$/pt</span><span style={{color:"#e4ede4"}}>${dpp}</span>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-            <span style={{color:"#888"}}>Press</span><span style={{color:"#e4ede4",textTransform:"capitalize"}}>{pressMode}</span>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between"}}>
-            <span style={{color:"#888"}}>Lightning</span><span style={{color:"#f59e0b"}}>⚡ Holes {lightningRound==="14"?"14,17,18":"16,17,18"}</span>
-          </div>
-        </div>
-        <button style={S.btn} onClick={() => onStart({
-          playerOrder: selPlayers.map(p => p.id),
-          players: selPlayers,
-          orderPlayers: selPlayers,
-          dpp: parseFloat(dpp),
-          pressMode,
-          lightningRound,
-        }, cd)}>
-          ⛳ Start Round
-        </button>
-        <button style={S.btnDark} onClick={() => setStep("course")}>← Back</button>
-      </div>
-    </div>
-  );
+  // Edit closed holes
+  if(STATE.holes.length>0&&STATE.isKeeper){
+    const ec=div('card',null,{marginTop:'0'});
+    ec.appendChild(div('sec',['Edit Closed Holes']));
+    STATE.holes.forEach((h,hIdx)=>{
+      if(STATE.editHole===hIdx){
+        ec.appendChild(renderEditForm(h,hIdx,orderPlayers));
+      } else {
+        const row=div('',null,{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#080d08',borderRadius:'8px',padding:'8px 12px',marginBottom:'6px'});
+        const captN=orderPlayers[h.captOI]?.name||'?';
+        const partN=h.partner==='alone'?' 🦅':h.partOI!==null?' +'+(orderPlayers[h.partOI]?.name||'?'):'';
+        row.appendChild(div('',null,{flex:'1'}).appendChild(div('',['H'+h.hole+' '+captN+partN+' — '+(h.winner==='none'?'No blood':(h.winner==='captain'?'Capt':'Field')+' '+h.pts+'pts')],{fontSize:'12px',color:h.winner==='none'?'#444':h.winner==='captain'?'#4ade80':'#f87171'})) || div(''));
+        // rebuild properly
+        const info=div('',null,{flex:'1'});
+        info.appendChild(div('',['H'+h.hole],{fontSize:'13px',color:'#4ade80',fontWeight:'700',display:'inline',marginRight:'8px'}));
+        info.appendChild(div('',[captN+partN],{fontSize:'12px',color:'#777',display:'inline',marginRight:'8px'}));
+        info.appendChild(div('',[h.winner==='none'?'No blood':(h.winner==='captain'?'Capt':'Field')+' '+h.pts+'pts'],{fontSize:'12px',color:h.winner==='none'?'#444':h.winner==='captain'?'#4ade80':'#f87171',display:'inline'}));
+        const row2=div('',null,{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#080d08',borderRadius:'8px',padding:'8px 12px',marginBottom:'6px'});
+        row2.appendChild(info);
+        row2.appendChild(btn('btng','Edit',()=>setState({editHole:hIdx}),{fontSize:'11px',padding:'4px 10px'}));
+        ec.appendChild(row2);
+      }
+    });
+    wrap.appendChild(ec);
+  }
+  return wrap;
 }
 
-// ─── Edit Hole Form ───────────────────────────────────────────────────────────
-function EditHoleForm({ h, hIdx, orderPlayers, onSave, onCancel, S }) {
-  const [winner, setWinner] = useState(h.winner);
-  const [pts, setPts] = useState(h.pts===14?7:h.pts);
-  const captTeamOI = h.partner==="alone" ? [h.captainOI] : [h.captainOI, h.partnerOI];
-  const fieldOI = [0,1,2,3,4].filter(i => !captTeamOI.includes(i));
-  return (
-    <div style={{background:"#0a1a0a",border:"1px solid #4ade80",borderRadius:8,padding:"12px",marginBottom:8}}>
-      <div style={{fontSize:13,color:"#4ade80",fontWeight:700,marginBottom:10}}>
-        Editing Hole {h.hole} — {orderPlayers[h.captainOI]?.name}{h.partner==="alone"?" 🦅 Lone":h.partnerOI!==null?` + ${orderPlayers[h.partnerOI]?.name}`:""}
-      </div>
-      <div style={{display:"flex",gap:6,marginBottom:10}}>
-        {[{k:"captain",lbl:"Captain's Team",sub:captTeamOI.map(oi=>orderPlayers[oi]?.name).join(" & ")},
-          {k:"field",lbl:"Field",sub:fieldOI.map(oi=>orderPlayers[oi]?.name).join(" & ")},
-          {k:"none",lbl:"No Blood",sub:""}].map(({k,lbl,sub}) => (
-          <button key={k} style={{flex:k==="none"?0.7:1,background:winner===k?"#162616":"#0a130a",border:winner===k?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:winner===k?"#e4ede4":"#bbb",padding:"10px 4px",fontSize:11,cursor:"pointer",fontFamily:"'Georgia',serif",textAlign:"center"}}
-            onClick={() => { setWinner(k); if(k==="none")setPts(null); }}>
-            <div style={{fontWeight:700}}>{lbl}</div>
-            {sub&&<div style={{fontSize:9,color:"#666",marginTop:2}}>{sub}</div>}
-          </button>
-        ))}
-      </div>
-      {winner&&winner!=="none"&&(
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:10}}>
-          {[1,2,3,4,5,6,7].map(p => (
-            <button key={p} style={{background:pts===p?"#162616":"#0a130a",border:pts===p?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:pts===p?"#e4ede4":"#bbb",padding:"11px 2px",fontSize:18,cursor:"pointer",fontFamily:"'Georgia',serif",textAlign:"center"}}
-              onClick={() => setPts(p)}>
-              {p}{p===7&&<div style={{fontSize:8,color:"#f59e0b",marginTop:1}}>×2</div>}
-            </button>
-          ))}
-        </div>
-      )}
-      <div style={{display:"flex",gap:8}}>
-        <button style={{flex:2,background:"linear-gradient(135deg,#1a5c1a,#267a26)",border:"none",borderRadius:8,color:"#e4ede4",padding:"11px",fontSize:14,fontFamily:"'Georgia',serif",cursor:"pointer",opacity:(winner==="none"||pts)?1:0.4}}
-          onClick={() => { if(winner==="none"||pts) onSave(hIdx,{winner,pts:pts===7?14:pts}); }}>
-          Save & Recalculate
-        </button>
-        <button style={{flex:1,background:"#111a11",border:"1px solid #1a3a1a",borderRadius:8,color:"#666",padding:"11px",fontSize:13,fontFamily:"'Georgia',serif",cursor:"pointer"}}
-          onClick={onCancel}>Cancel</button>
-      </div>
-    </div>
-  );
+function renderEditForm(h,hIdx,orderPlayers){
+  let ew=STATE.winner,ep=h.pts===14?7:h.pts;
+  const captTeam=h.partner==='alone'?[h.captOI]:[h.captOI,h.partOI];
+  const field=[0,1,2,3,4].filter(i=>!captTeam.includes(i));
+  const wrap=div('',null,{background:'#0a1a0a',border:'1px solid #4ade80',borderRadius:'8px',padding:'12px',marginBottom:'8px'});
+  wrap.appendChild(div('',['Editing Hole '+h.hole],{fontSize:'13px',color:'#4ade80',fontWeight:'700',marginBottom:'10px'}));
+
+  const wrow=div('row');
+  [{k:'captain',l:"Captain's"},{k:'field',l:'Field'},{k:'none',l:'No Blood'}].forEach(({k,l})=>{
+    const b=btn('winbtn'+(ew===k?' on':''),l,()=>{ew=k;if(k==='none')ep=null;refreshEdit();},{flex:k==='none'?'0.7':'1'});
+    wrow.appendChild(b);
+  });
+  wrap.appendChild(wrow);
+
+  const pgrid=div('',null,{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'10px'});
+  [1,2,3,4,5,6,7].forEach(p=>{
+    pgrid.appendChild(btn('ptbtn'+(ep===p?' on':''),p===7?p+'\n×2':String(p),()=>{ep=p;refreshEdit();}));
+  });
+  wrap.appendChild(pgrid);
+
+  function refreshEdit(){
+    // update button classes
+    wrow.querySelectorAll('button').forEach((b,i)=>{
+      const k=['captain','field','none'][i];
+      b.className='winbtn'+(ew===k?' on':'');
+    });
+    pgrid.querySelectorAll('button').forEach((b,i)=>{
+      const p=i+1;b.className='ptbtn'+(ep===p?' on':'');
+    });
+  }
+
+  const brow=div('row');
+  brow.appendChild(btn('btn','Save & Recalculate',()=>{if(ew==='none'||ep)saveEdit(hIdx,{winner:ew,pts:ep===7?14:ep});},{flex:'2',opacity:(ew==='none'||ep)?'1':'0.4'}));
+  brow.appendChild(btn('btnd','Cancel',()=>setState({editHole:null}),{flex:'1',marginTop:'0'}));
+  wrap.appendChild(brow);
+  return wrap;
 }
 
-// ─── Nav Bar ──────────────────────────────────────────────────────────────────
-function NavBar({ screen, setScreen, S }) {
-  const tabs = [["home","🏠","Home"],["newround","⛳","Round"],["history","📋","History"],["stats","📊","Stats"],["roster","👤","Roster"]];
-  return (
-    <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#0a130a",borderTop:"1px solid #1a3a1a",display:"flex",zIndex:100}}>
-      {tabs.map(([s,icon,lbl]) => (
-        <button key={s} style={{flex:1,background:"transparent",border:"none",borderTop:screen===s?"2px solid #4ade80":"2px solid transparent",color:screen===s?"#4ade80":"#444",padding:"10px 4px 8px",fontSize:10,cursor:"pointer",fontFamily:"'Georgia',serif",letterSpacing:0.5}}
-          onClick={() => setScreen(s)}>
-          <div style={{fontSize:16}}>{icon}</div>{lbl}
-        </button>
-      ))}
-    </div>
-  );
+function renderSpectate(){
+  const wrap=div('');
+  if(!STATE.round)return wrap;
+  const orderPlayers=STATE.round.playerOrder?.map(pid=>STATE.players.find(p=>p.id===pid)||{name:'?'})||[];
+  const ghdr=div('gamehdr');
+  ghdr.appendChild(div('',['HOLE '+(STATE.curHole+1)],{fontSize:'20px',fontWeight:'700',color:'#c5e8c5'}));
+  const mid=div('',null,{textAlign:'center'});
+  mid.appendChild(div('',[STATE.round.courseData?.name||''],{fontSize:'11px',color:'#555'}));
+  mid.appendChild(div('',[STATE.round.gameCode||''],{fontSize:'14px',color:'#f59e0b',fontWeight:'700'}));
+  ghdr.appendChild(mid);
+  ghdr.appendChild(div('',['👁 Live'],{fontSize:'12px',color:'#4ade80'}));
+  wrap.appendChild(ghdr);
+  const ledDiv=div('ledger');
+  orderPlayers.forEach((p,oi)=>{
+    const li=div('li');
+    li.appendChild(div('',[p.name?.split(' ')[0]||'?'],{fontSize:'10px',color:'#555'}));
+    li.appendChild(div('',[fmt(STATE.ledger[oi])],{fontSize:'13px',fontWeight:'700',color:STATE.ledger[oi]>=0?'#4ade80':'#f87171'}));
+    ledDiv.appendChild(li);
+  });
+  wrap.appendChild(ledDiv);
+  const card=div('card');
+  card.appendChild(div('sec',['Hole History']));
+  STATE.holes.forEach(h=>{
+    const captN=orderPlayers[h.captOI]?.name||'?';
+    const row=div('',null,{display:'flex',justifyContent:'space-between',marginBottom:'6px',paddingBottom:'6px',borderBottom:'1px solid #1a3a1a'});
+    row.appendChild(div('',['H'+h.hole],{color:'#4ade80',fontWeight:'700'}));
+    row.appendChild(div('',[captN+(h.partner==='alone'?' 🦅':'')],{color:'#aaa',fontSize:'13px'}));
+    row.appendChild(div('',[h.winner==='none'?'No blood':(h.winner==='captain'?'Capt':'Field')+' '+h.pts+'pts'],{color:h.winner==='none'?'#444':h.winner==='captain'?'#4ade80':'#f87171'}));
+    card.appendChild(row);
+  });
+  wrap.appendChild(card);
+  wrap.appendChild(btn('btnd','← Home',()=>setState({screen:'home'}),{margin:'0 12px'}));
+  wrap.appendChild(renderNavBar('spectate'));
+  return wrap;
 }
 
-// ─── Mount ────────────────────────────────────────────────────────────────────
-document.getElementById('loading').style.display = 'none';
-const container = document.getElementById('root');
-const root = ReactDOM.createRoot(container);
-root.render(React.createElement(FiveManCaptain));
+function renderSummary(){
+  const wrap=div('');
+  if(!STATE.round)return wrap;
+  const hdr=div('hdr');hdr.appendChild(div('logo',['FINAL']));hdr.appendChild(div('sub',['5-MAN CAPTAIN']));
+  wrap.appendChild(hdr);
+  const orderPlayers=STATE.round.playerOrder?.map(pid=>STATE.players.find(p=>p.id===pid)||{name:'?',paymentMethod:'cash',paymentHandle:''})||[];
+  const sorted=[...orderPlayers].map((p,i)=>({...p,oi:i,money:STATE.ledger[i]||0})).sort((a,b)=>b.money-a.money);
+  const today=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const note='5-Man Captain · '+(STATE.round.courseData?.name||'Golf')+' · '+today;
 
-  </script>
+  const stand=div('card');
+  stand.appendChild(div('sec',['Final Standings']));
+  sorted.forEach((p,rank)=>{
+    const row=div('orow',null,{cursor:'default',borderLeft:rank===0?'3px solid #f59e0b':rank===sorted.length-1?'3px solid #f87171':'3px solid #1a3a1a'});
+    row.appendChild(div('',[rank+1],{color:rank===0?'#f59e0b':'#4ade80',fontWeight:'700',fontSize:'18px',minWidth:'24px'}));
+    row.appendChild(div('',[p.name],{flex:'1',fontSize:'16px'}));
+    row.appendChild(div('',[fmt(p.money)],{fontSize:'20px',fontWeight:'700',color:p.money>=0?'#4ade80':'#f87171'}));
+    stand.appendChild(row);
+  });
+  wrap.appendChild(stand);
+
+  // Settlement
+  const scard=div('card');
+  scard.appendChild(div('sec',['Settle Up']));
+  const playersForSettle=orderPlayers.map((p,i)=>{
+    const rp=STATE.players.find(rp=>rp.id===STATE.round.playerOrder?.[i]);
+    return{...p,oi:i,paymentMethod:rp?.paymentMethod||'cash',paymentHandle:rp?.paymentHandle||''};
+  });
+  const txns=settle(playersForSettle,STATE.ledger);
+  if(txns.length===0){scard.appendChild(div('',['All square — no payments needed!'],{color:'#555',textAlign:'center',padding:'12px'}));}
+  txns.forEach(txn=>{
+    const tbox=div('',null,{background:'#080d08',borderRadius:'10px',padding:'12px 14px',marginBottom:'8px',border:'1px solid #1a3a1a'});
+    const top=div('',null,{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'});
+    const names=div('');
+    names.appendChild(div('',[txn.from.name],{fontSize:'15px',color:'#f87171',fontWeight:'700',display:'inline'}));
+    names.appendChild(div('',['  →  '],{fontSize:'13px',color:'#555',display:'inline'}));
+    names.appendChild(div('',[txn.to.name],{fontSize:'15px',color:'#4ade80',fontWeight:'700',display:'inline'}));
+    top.appendChild(names);
+    top.appendChild(div('',['$'+txn.amount],{fontSize:'20px',fontWeight:'700'}));
+    tbox.appendChild(top);
+    const bot=div('',null,{display:'flex',alignItems:'center',justifyContent:'space-between'});
+    bot.appendChild(div('',[txn.to.paymentMethod==='cash'?'Cash':txn.to.paymentHandle||''],{fontSize:'11px',color:'#555'}));
+    const link=payLink(txn.to.paymentMethod,txn.to.paymentHandle||'',txn.amount,note);
+    const PAY_COLORS={venmo:'#3D95CE',cashapp:'#00D632',paypal:'#003087'};
+    const PAY_BTN={venmo:'Pay Venmo',cashapp:'Pay Cash App',paypal:'Pay PayPal'};
+    if(txn.to.paymentMethod==='cash'){bot.appendChild(div('',['Cash'],{fontSize:'12px',color:'#888',fontStyle:'italic'}));}
+    else if(link){
+      const a=el('a',{href:link,style:{background:PAY_COLORS[txn.to.paymentMethod]||'#1a5c1a',color:'#fff',borderRadius:'8px',padding:'8px 14px',fontSize:'13px',textDecoration:'none',fontFamily:"'Georgia',serif",fontWeight:'700'}},[PAY_BTN[txn.to.paymentMethod]||'Pay']);
+      bot.appendChild(a);
+    } else {bot.appendChild(div('',['Open '+(PAY_LABELS[txn.to.paymentMethod]||'app')+' manually'],{fontSize:'12px',color:'#888'}));}
+    tbox.appendChild(bot);
+    scard.appendChild(tbox);
+  });
+  scard.appendChild(div('',[ note],{fontSize:'11px',color:'#444',marginTop:'8px',textAlign:'center'}));
+  wrap.appendChild(scard);
+
+  // Hole log
+  const hlog=div('card');
+  hlog.appendChild(div('sec',['Hole by Hole']));
+  const orderPs=STATE.round.playerOrder?.map(pid=>STATE.players.find(p=>p.id===pid)||{name:'?'})||[];
+  STATE.holes.forEach(h=>{
+    const row=div('',null,{marginBottom:'8px',paddingBottom:'8px',borderBottom:'1px solid #1a3a1a'});
+    const top=div('',null,{display:'flex',justifyContent:'space-between'});
+    top.appendChild(div('',['Hole '+h.hole],{color:'#4ade80',fontSize:'13px',fontWeight:'700'}));
+    top.appendChild(div('',['$'+h.dpp+'/pt'],{fontSize:'11px',color:'#555'}));
+    row.appendChild(top);
+    row.appendChild(div('',[orderPs[h.captOI]?.name+(h.partner==='alone'?' 🦅 Lone':h.partOI!==null?' + '+orderPs[h.partOI]?.name:'')],{fontSize:'12px',color:'#777',marginTop:'2px'}));
+    row.appendChild(div('',[h.winner==='none'?'No blood':(h.winner==='captain'?"Capt's Team":'Field')+' — '+h.pts+' pts'],{fontSize:'13px',marginTop:'2px',color:h.winner==='none'?'#444':h.winner==='captain'?'#4ade80':'#f87171'}));
+    hlog.appendChild(row);
+  });
+  wrap.appendChild(hlog);
+  wrap.appendChild(btn('btn','← Home',()=>setState({screen:'home'}),{margin:'0 12px 80px'}));
+  wrap.appendChild(renderNavBar('summary'));
+  return wrap;
+}
+
+function renderNavBar(active){
+  const nb=div('navbar');
+  [['home','🏠','Home'],['newround','⛳','Round'],['history','📋','History'],['stats','📊','Stats'],['roster','👤','Roster']].forEach(([s,icon,lbl])=>{
+    const b=document.createElement('button');
+    b.className='nb'+(active===s?' on':'');
+    b.innerHTML='<div style="font-size:16px">'+icon+'</div>'+lbl;
+    b.onclick=()=>setState({screen:s});
+    nb.appendChild(b);
+  });
+  return nb;
+}
+
+// ── Main render ───────────────────────────────────────────────────────────────
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML='';
+
+  // Always show header
+  const hdr=div('hdr');
+  hdr.appendChild(div('logo',['5-MAN']));
+  hdr.appendChild(div('sub',['CAPTAIN AT THE CREEK']));
+
+  const s=STATE.screen;
+
+  if(s==='login'){app.appendChild(hdr);app.appendChild(renderLogin());return;}
+  if(s==='home'){app.appendChild(renderHome());return;}
+  if(s==='roster'){app.appendChild(hdr);app.appendChild(renderRoster());return;}
+  if(s==='stats'){app.appendChild(renderStats());return;}
+  if(s==='history'){app.appendChild(renderHistory());return;}
+  if(s==='newround'){app.appendChild(hdr);app.appendChild(renderNewRound());return;}
+  if(s==='game'){app.appendChild(renderGame());return;}
+  if(s==='spectate'){app.appendChild(renderSpectate());return;}
+  if(s==='summary'){app.appendChild(renderSummary());return;}
+  app.appendChild(hdr);
+  app.appendChild(div('card',['Loading...']));
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  // Check for saved session
+  const saved=localStorage.getItem('5mc_user');
+  if(saved){
+    try{
+      STATE.user=JSON.parse(saved);
+      STATE.screen='home';
+      listenPlayers();
+    }catch{STATE.screen='login';}
+  }
+  render();
+  // Load history in background
+  loadHistory();
+});
+</script>
 
 </body>
 </html>
