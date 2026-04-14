@@ -903,14 +903,19 @@ function buildCourseMgmt() {
 function buildEditCourse() {
   const ec = state.editingCourse;
   const isEdit = !!ec;
-  // Pre-fill if editing
-  if (isEdit && state.setupCourseName === undefined) {
-    state.setupCourseName = ec.name||"";
-    state.setupTee = ec.tee||"White";
-    state.setupRating = ec.rating||"";
-    state.setupSlope = ec.slope||"";
-    state.setupPar = ec.par||"72";
-    state.setupHoleHdcps = [...(ec.holeHdcps||Array(18).fill(""))];
+  // Pre-fill if editing — always re-init from the course being edited
+  if (isEdit) {
+    if (state.setupCourseName === undefined || state._editCourseId !== ec.id) {
+      state._editCourseId = ec.id;
+      state.setupCourseName = ec.name||"";
+      state.setupTee = ec.tee||"White";
+      state.setupRating = ec.rating||"";
+      state.setupSlope = ec.slope||"";
+      state.setupPar = ec.par||"72";
+      state.setupHoleHdcps = [...(ec.holeHdcps||Array(18).fill(""))];
+    }
+  } else {
+    state._editCourseId = null;
   }
   if (!state.setupHoleHdcps) state.setupHoleHdcps = Array(18).fill("");
   if (!state.setupTee) state.setupTee = "White";
@@ -1041,14 +1046,21 @@ function buildRoster() {
       state.epName=undefined; // force re-init
       setState({screen:"editplayer"});
     };
-    const ghin = h("a",{href:"https://www.ghin.com/golfers/lookup",target:"_blank",style:{fontSize:11,color:"#4ade80",textDecoration:"none"}},"GHIN");
-    row.appendChild(info); row.appendChild(ghin);
+    const ghin = h("a",{href:"https://www.ghin.com/golfers/lookup",target:"_blank",style:{fontSize:11,color:"#4ade80",textDecoration:"none",marginRight:6}},"GHIN");
+    row.appendChild(info);
+    row.appendChild(ghin);
+    if (editBtn) row.appendChild(editBtn);
     card.appendChild(row);
   });
-  const addBtn = h("button",{className:"btn"},"+ Add / Edit Player");
-  addBtn.onclick = () => setState({screen:"editplayer", editPlayer:null});
+  const addBtn = h("button",{className:"btn"},"+ Add New Player");
+  addBtn.onclick = () => {
+    state.editPlayer = null;
+    state.epName=undefined; state.epIndex=undefined; state.epAffiliation=undefined;
+    state.epPayMethod=undefined; state.epPayHandle=undefined; state.epPin=undefined; state.epErr=undefined;
+    setState({screen:"editplayer"});
+  };
   const backBtn = h("button",{className:"btn-dark"},"← Back");
-  backBtn.onclick = () => setState({screen:"home"});
+  backBtn.onclick = () => setState({screen:"club"});
   card.appendChild(addBtn); card.appendChild(backBtn);
   wrap.appendChild(card); wrap.appendChild(buildNav("club"));
   return wrap;
