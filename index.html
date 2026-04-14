@@ -28,7 +28,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <!-- auth not needed for PIN login -->
 
   <!-- React -->
 
@@ -58,29 +58,29 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-async function signInWithGoogle() {
-  try {
-    await auth.signInWithRedirect(googleProvider);
-  } catch (e) {
-    console.error("Sign in error:", e);
-  }
+// ─── PIN Auth (no OAuth needed) ───────────────────────────────────────────────
+async function pinSignIn(playerId, pin) {
+  const snap = await db.collection("players").doc(playerId).get();
+  if (!snap.exists) return { error: "Player not found" };
+  const data = snap.data();
+  if (!data.pin) return { error: "No PIN set" };
+  if (data.pin !== pin) return { error: "Wrong PIN" };
+  return { user: { uid: playerId, name: data.name } };
 }
 
-// Handle redirect result on page load
-async function getRedirectResult() {
-  try {
-    const result = await auth.getRedirectResult();
-    return result?.user || null;
-  } catch (e) {
-    console.error("Redirect result error:", e);
-    return null;
+async function pinRegister(name, pin) {
+  // Check if name already exists
+  const snap = await db.collection("players").where("name", "==", name).limit(1).get();
+  if (!snap.empty) {
+    // Update existing player with PIN
+    const id = snap.docs[0].id;
+    await db.collection("players").doc(id).update({ pin });
+    return { user: { uid: id, name } };
   }
+  // Create new player
+  const ref = await db.collection("players").add({ name, pin, rounds:0, wins:0, totalMoney:0, totalHoles:0, captainHoles:0, captainMoney:0 });
+  return { user: { uid: ref.id, name } };
 }
-
-function signOut() { return auth.signOut(); }
-
-function onAuthChange(cb) { return auth.onAuthStateChanged(cb); }
 
 // ─── Players ──────────────────────────────────────────────────────────────────
 async function getPlayers() {
@@ -427,25 +427,20 @@ function FiveManCaptain() {
   const [joinCode, setJoinCode] = useState("");
   const [joinErr, setJoinErr] = useState("");
 
-  // Auth listener — handle both redirect result and state changes
+  // PIN auth — check localStorage for saved session
   useEffect(() => {
-    // First check if we're returning from a Google redirect
-    auth.getRedirectResult().then(result => {
-      if (result && result.user) {
-        setUser(result.user);
-        setAuthLoading(false);
-      }
-    }).catch(e => {
-      console.error("Redirect result error:", e);
-    });
-
-    // Also listen for auth state changes
-    const unsub = auth.onAuthStateChanged(u => {
-      setUser(u);
-      setAuthLoading(false);
-    });
-    return unsub;
+    const saved = localStorage.getItem("5mc_user");
+    if (saved) {
+      try { setUser(JSON.parse(saved)); } catch {}
+    }
+    setAuthLoading(false);
   }, []);
+
+  function pinLogout() {
+    localStorage.removeItem("5mc_user");
+    setUser(null);
+    setScreen("home");
+  }
 
   // Load players on mount
   useEffect(() => {
@@ -477,7 +472,7 @@ function FiveManCaptain() {
     </div>
   );
 
-  if (!user) return <LoginScreen S={S} onLogin={signInWithGoogle} />;
+  if (!user) return <LoginScreen S={S} onLogin={(u) => { setUser(u); }} />;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function getLightningHoles(setting) {
@@ -616,7 +611,7 @@ function FiveManCaptain() {
 
   if (screen === "home") return (
     <HomeScreen S={S} user={user} players={players} roundHistory={roundHistory}
-      setScreen={setScreen} signOut={signOut}
+      setScreen={setScreen} signOut={pinLogout}
       onJoinRound={async (code) => {
         const r = await getRoundByCode(code);
         if (!r) { setJoinErr("Game not found"); return; }
@@ -936,21 +931,102 @@ function FiveManCaptain() {
   );
 }
 
-// ─── Login Screen ─────────────────────────────────────────────────────────────
+// ─── Login Screen (PIN-based) ─────────────────────────────────────────────────
 function LoginScreen({ S, onLogin }) {
+  const [mode, setMode] = useState("select"); // select | pin | register
+  const [players, setPlayers] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [pin, setPin] = useState("");
+  const [name, setName] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    db.collection("players").orderBy("name").get().then(snap => {
+      setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+  }, []);
+
+  async function handlePinLogin() {
+    if (pin.length !== 4) { setErr("Enter your 4-digit PIN"); return; }
+    setLoading(true); setErr("");
+    const result = await pinSignIn(selectedPlayer.id, pin);
+    setLoading(false);
+    if (result.error) { setErr(result.error); return; }
+    const user = { uid: selectedPlayer.id, name: selectedPlayer.name };
+    localStorage.setItem("5mc_user", JSON.stringify(user));
+    onLogin(user);
+  }
+
+  async function handleRegister() {
+    if (!name.trim()) { setErr("Enter your name"); return; }
+    if (newPin.length !== 4) { setErr("PIN must be 4 digits"); return; }
+    if (newPin !== confirmPin) { setErr("PINs don't match"); return; }
+    setLoading(true); setErr("");
+    const result = await pinRegister(name.trim(), newPin);
+    setLoading(false);
+    if (result.error) { setErr(result.error); return; }
+    const user = { uid: result.user.uid, name: result.user.name };
+    localStorage.setItem("5mc_user", JSON.stringify(user));
+    onLogin(user);
+  }
+
   return (
     <div style={S.root}>
       <div style={S.hdr}><div style={S.logo}>5-MAN</div><div style={S.logoSub}>CAPTAIN AT THE CREEK</div></div>
       <div style={S.card}>
-        <div style={{textAlign:"center",padding:"20px 0"}}>
-          <div style={{fontSize:64,marginBottom:16}}>⛳</div>
-          <div style={{fontSize:18,color:"#c5e8c5",marginBottom:8}}>Welcome to 5-Man Captain</div>
-          <div style={{fontSize:13,color:"#666",marginBottom:24}}>Sign in to access your profile, stats, and game history</div>
-          <button style={{...S.btn,background:"#fff",color:"#333",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}
-            onClick={onLogin}>
-            <span style={{fontSize:18}}>G</span> Sign in with Google
-          </button>
+        <div style={{textAlign:"center",marginBottom:16}}>
+          <div style={{fontSize:48,marginBottom:8}}>⛳</div>
+          <div style={{fontSize:18,color:"#c5e8c5"}}>Welcome to 5-Man Captain</div>
         </div>
+
+        {mode === "select" && (
+          <>
+            <div style={S.sec}>Who Are You?</div>
+            {players.length === 0 && <div style={{color:"#555",marginBottom:10,fontSize:13}}>No players yet — register below.</div>}
+            {players.map(p => (
+              <button key={p.id} style={{...S.btnDark,marginTop:6,textAlign:"left",padding:"12px 14px"}}
+                onClick={() => { setSelectedPlayer(p); setMode("pin"); setErr(""); setPin(""); }}>
+                {p.name}
+              </button>
+            ))}
+            <button style={{...S.btn,marginTop:16}} onClick={() => { setMode("register"); setErr(""); }}>
+              + New Player / First Time
+            </button>
+          </>
+        )}
+
+        {mode === "pin" && selectedPlayer && (
+          <>
+            <div style={S.sec}>Enter PIN — {selectedPlayer.name}</div>
+            <input style={{...S.inp,fontSize:24,textAlign:"center",letterSpacing:12}}
+              type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+              value={pin} onChange={e => setPin(e.target.value.replace(/\D/g,"").slice(0,4))} />
+            {err && <div style={S.errBox}>{err}</div>}
+            <button style={{...S.btn,opacity:pin.length===4?1:0.4}}
+              onClick={handlePinLogin}>{loading?"...":"Sign In"}</button>
+            <button style={S.btnDark} onClick={() => { setMode("select"); setErr(""); setPin(""); }}>← Back</button>
+          </>
+        )}
+
+        {mode === "register" && (
+          <>
+            <div style={S.sec}>Create Your Profile</div>
+            <input style={S.inp} placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
+            <input style={{...S.inp,fontSize:20,textAlign:"center",letterSpacing:8}}
+              type="password" inputMode="numeric" maxLength={4} placeholder="Create 4-digit PIN"
+              value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g,"").slice(0,4))} />
+            <input style={{...S.inp,fontSize:20,textAlign:"center",letterSpacing:8}}
+              type="password" inputMode="numeric" maxLength={4} placeholder="Confirm PIN"
+              value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g,"").slice(0,4))} />
+            {err && <div style={S.errBox}>{err}</div>}
+            <button style={{...S.btn,opacity:(name&&newPin.length===4&&confirmPin.length===4)?1:0.4}}
+              onClick={handleRegister}>{loading?"...":"Create Profile"}</button>
+            <button style={S.btnDark} onClick={() => { setMode("select"); setErr(""); }}>← Back</button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -978,7 +1054,7 @@ function HomeScreen({ S, user, players, roundHistory, setScreen, signOut, onJoin
         <button style={S.btnDark} onClick={() => setScreen("roster")}>👤 Player Roster</button>
         <button style={S.btnDark} onClick={() => setScreen("history")}>📋 Round History</button>
         <button style={S.btnDark} onClick={() => setScreen("stats")}>📊 Stats & Rankings</button>
-        <button style={S.btnDanger} onClick={signOut}>Sign Out</button>
+        <button style={S.btnDanger} onClick={pinLogout}>Sign Out</button>
       </div>
       {roundHistory.length > 0 && (
         <div style={S.card}>
