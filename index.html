@@ -1201,6 +1201,8 @@ function buildGame() {
     card.appendChild(confirmBtn); card.appendChild(backBtn);
   }
 
+  wrap.appendChild(card); // ← attach the main game card
+
   // Reset hole button — always visible so captain pick can be redone
   const resetCard = h("div",{className:"card",style:{marginTop:0}});
   resetCard.appendChild(h("div",{className:"sec"},"Current Hole Options"));
