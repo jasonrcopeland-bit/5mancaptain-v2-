@@ -46,6 +46,9 @@
 
 <script>
 // ── Firebase ──────────────────────────────────────────────────────────────────
+// Hide loading spinner immediately
+document.getElementById("loading").style.display = "none";
+
 const fbApp = firebase.initializeApp({
   apiKey: "AIzaSyD_Xp8LrkX8BsJ4E65LZVPAhidDXxQyzCw",
   authDomain: "man-captain-scoring.firebaseapp.com",
@@ -1968,18 +1971,31 @@ function buildStats() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
+  // Render immediately so user sees login screen, not loading forever
   const saved = loadSession();
   if (saved) {
     state.user = saved;
     state.screen = "home";
+  } else {
+    state.screen = "login";
   }
-  // Load players
-  try {
-    state.players = await loadPlayers();
-  } catch(e) {
-    console.error("Failed to load players:", e);
+  render(); // Show login or home right away
+
+  // Load players in background — don't block render
+  if (state.user) {
+    try {
+      const players = await Promise.race([
+        loadPlayers(),
+        new Promise((_,rej) => setTimeout(()=>rej(new Error("timeout")), 8000))
+      ]);
+      state.players = players;
+      render(); // Re-render with players loaded
+    } catch(e) {
+      console.error("Players load error:", e.message);
+      // Still show app — players will be empty but app works
+      render();
+    }
   }
-  render();
 }
 
 init();
