@@ -514,7 +514,7 @@ function buildSetupPlayers() {
 
   const ok = setupPlayers.every(Boolean) && setupDpp;
   const nextBtn = h("button",{className:"btn",style:{opacity:ok?1:0.4}},"Next: Course →");
-  nextBtn.onclick = () => { if(ok) setState({setupStep:"course"}); };
+  nextBtn.onclick = () => { if(ok) { state.courseMode = "select"; setState({setupStep:"course"}); } };
   const backBtn = h("button",{className:"btn-dark"},"← Home");
   backBtn.onclick = () => setState({screen:"home"});
   card.appendChild(nextBtn); card.appendChild(backBtn);
@@ -522,83 +522,253 @@ function buildSetupPlayers() {
   return wrap;
 }
 
+// ── Hardcoded default course ──────────────────────────────────────────────────
+const CRESS_CREEK = {
+  id: "cress-creek",
+  name: "Cress Creek Country Club",
+  tee: "White",
+  rating: "71.9",
+  slope: "132",
+  par: "72",
+  holeHdcps: ["5","13","9","1","17","11","15","7","3","12","14","6","2","18","8","4","16","10"],
+  holePars: ["4","4","4","4","3","4","4","3","4","4","3","4","5","3","4","4","3","5"],
+  isDefault: true
+};
+
+function loadSavedCourses() {
+  try { return JSON.parse(localStorage.getItem("5mc_courses")||"[]"); } catch { return []; }
+}
+function saveCourseLocal(course) {
+  const courses = loadSavedCourses().filter(c => c.id !== course.id);
+  courses.unshift(course);
+  localStorage.setItem("5mc_courses", JSON.stringify(courses));
+}
+function deleteCourseLocal(id) {
+  const courses = loadSavedCourses().filter(c => c.id !== id);
+  localStorage.setItem("5mc_courses", JSON.stringify(courses));
+}
+
 function buildSetupCourse() {
-  // Initialize state values if not set
-  if (!state.setupHoleHdcps) state.setupHoleHdcps = Array(18).fill("");
-  if (!state.setupTee) state.setupTee = "White";
-  if (!state.setupPar) state.setupPar = "72";
+  const savedCourses = loadSavedCourses();
+  const courseMode = state.courseMode || "select"; // select | search | manual | edit
 
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"SELECT COURSE")));
-  const card = h("div",{className:"card"});
 
-  card.appendChild(h("div",{className:"sec"},"Course Details"));
+  // ── SELECT mode: show Cress Creek + saved courses + options ──
+  if (courseMode === "select") {
+    const card = h("div",{className:"card"});
 
-  // Course name — store directly, no re-render on input
-  const nameInp = h("input",{type:"text",placeholder:"Course name"});
-  nameInp.value = state.setupCourseName||"";
-  nameInp.addEventListener("input", e => { state.setupCourseName = e.target.value; });
-  nameInp.addEventListener("blur", e => { state.setupCourseName = e.target.value; });
-  card.appendChild(nameInp);
+    // Cress Creek default
+    card.appendChild(h("div",{className:"sec"},"Home Course"));
+    const ccBtn = h("div",{className:"player-row",style:{cursor:"pointer"}});
+    ccBtn.appendChild(h("div",{style:{flex:1}},
+      h("div",{style:{fontSize:15,color:"#c5e8c5"}},"⛳ Cress Creek CC"),
+      h("div",{style:{fontSize:11,color:"#666"}},"White · Rtg 71.9 / Slp 132")));
+    ccBtn.appendChild(h("span",{style:{color:"#4ade80",fontSize:18}},"→"));
+    ccBtn.onclick = () => { state.setupCourse = {...CRESS_CREEK}; setState({setupStep:"confirm"}); };
+    card.appendChild(ccBtn);
 
-  // Tee buttons — re-render only on tap, not on typing
-  card.appendChild(h("div",{className:"sec"},"Tees"));
-  const teeRow = h("div",{className:"row"});
-  ["Black","Blue","White","Gold","Red"].forEach(t => {
-    const isActive = state.setupTee === t;
-    const tb = h("button",{style:{flex:1,background:isActive?"#1a5c1a":"#0a130a",border:isActive?"1px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:isActive?"#e4ede4":"#888",padding:"8px 4px",fontSize:12,cursor:"pointer",fontFamily:"Georgia,serif"}},t);
-    tb.onclick = () => { state.setupTee = t; render(); };
-    teeRow.appendChild(tb);
-  });
-  card.appendChild(teeRow);
+    // Saved courses
+    if (savedCourses.length > 0) {
+      card.appendChild(h("div",{className:"sec"},"Saved Courses"));
+      savedCourses.forEach(c => {
+        const row = h("div",{className:"player-row",style:{cursor:"pointer"}});
+        row.appendChild(h("div",{style:{flex:1}},
+          h("div",{style:{fontSize:14}},c.name),
+          h("div",{style:{fontSize:11,color:"#666"}},c.tee+" · Rtg "+c.rating+" / Slp "+c.slope)));
+        const editBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px",marginRight:6}},"Edit");
+        editBtn.onclick = e => { e.stopPropagation(); state.editingCourse = {...c}; state.courseMode = "edit"; render(); };
+        const delBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px"}},"✕");
+        delBtn.onclick = e => { e.stopPropagation(); deleteCourseLocal(c.id); render(); };
+        const useBtn = h("span",{style:{color:"#4ade80",fontSize:18,cursor:"pointer"}},"→");
+        useBtn.onclick = () => { state.setupCourse = {...c}; setState({setupStep:"confirm"}); };
+        row.appendChild(editBtn); row.appendChild(delBtn); row.appendChild(useBtn);
+        card.appendChild(row);
+      });
+    }
 
-  // Rating, slope, par — store directly
-  card.appendChild(h("div",{className:"sec"},"Course Rating / Slope / Par"));
-  const rRow = h("div",{className:"row"});
-  const ratingInp = h("input",{type:"number",placeholder:"Rating",style:{flex:1,marginBottom:0}});
-  ratingInp.value = state.setupRating||"";
-  ratingInp.addEventListener("input", e => { state.setupRating = e.target.value; });
-  const slopeInp = h("input",{type:"number",placeholder:"Slope",style:{flex:1,marginBottom:0}});
-  slopeInp.value = state.setupSlope||"";
-  slopeInp.addEventListener("input", e => { state.setupSlope = e.target.value; });
-  const parInp = h("input",{type:"number",placeholder:"Par",style:{flex:1,marginBottom:0}});
-  parInp.value = state.setupPar||"72";
-  parInp.addEventListener("input", e => { state.setupPar = e.target.value; });
-  rRow.appendChild(ratingInp); rRow.appendChild(slopeInp); rRow.appendChild(parInp);
-  card.appendChild(rRow);
-
-  // Hole handicaps — store directly, no re-render
-  card.appendChild(h("div",{className:"sec"},"Hole Handicap Ratings (1–18)"));
-  const hdcpGrid = h("div",{style:{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:3}});
-  for(let i=0;i<18;i++) {
-    const cell = h("div",{style:{background:"#080d08",border:"1px solid #1a3a1a",borderRadius:5,padding:"3px 2px",textAlign:"center"}});
-    cell.appendChild(h("div",{style:{fontSize:9,color:"#4ade80"}},"H"+(i+1)));
-    const inp = h("input",{type:"number",style:{width:"100%",background:"transparent",border:"none",borderTop:"1px solid #1a3a1a",color:"#e4ede4",padding:"3px 0",fontSize:11,textAlign:"center",outline:"none",fontFamily:"Georgia,serif",marginTop:2}});
-    inp.value = state.setupHoleHdcps[i]||"";
-    const idx = i;
-    inp.addEventListener("input", e => { state.setupHoleHdcps[idx] = e.target.value; });
-    cell.appendChild(inp);
-    hdcpGrid.appendChild(cell);
-  }
-  card.appendChild(hdcpGrid);
-
-  const nextBtn = h("button",{className:"btn"},"Next: Confirm →");
-  nextBtn.onclick = () => {
-    state.setupCourse = {
-      name: state.setupCourseName||"",
-      tee: state.setupTee||"White",
-      rating: state.setupRating||"72",
-      slope: state.setupSlope||"113",
-      par: state.setupPar||"72",
-      holeHdcps: [...state.setupHoleHdcps],
-      holePars: Array(18).fill("4")
+    // Search / Manual options
+    card.appendChild(h("div",{className:"sec"},"Other Course"));
+    const searchBtn = h("button",{className:"btn"},"🔍 Search Course by Name");
+    searchBtn.onclick = () => { state.courseMode = "search"; state.courseSearchQuery = ""; state.courseSearchResults = []; state.courseSearchErr = ""; render(); };
+    const manualBtn = h("button",{className:"btn-dark"},"✏️ Enter Manually");
+    manualBtn.onclick = () => {
+      state.courseMode = "manual";
+      state.setupCourseName = ""; state.setupTee = "White"; state.setupRating = ""; state.setupSlope = ""; state.setupPar = "72";
+      state.setupHoleHdcps = Array(18).fill("");
+      render();
     };
-    setState({setupStep:"confirm"});
-  };
-  const backBtn = h("button",{className:"btn-dark"},"← Back");
-  backBtn.onclick = () => setState({setupStep:"players"});
-  card.appendChild(nextBtn); card.appendChild(backBtn);
-  wrap.appendChild(card);
-  return wrap;
+    const backBtn = h("button",{className:"btn-dark"},"← Back");
+    backBtn.onclick = () => setState({setupStep:"players"});
+    card.appendChild(searchBtn); card.appendChild(manualBtn); card.appendChild(backBtn);
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  // ── SEARCH mode ──
+  if (courseMode === "search") {
+    const card = h("div",{className:"card"},h("div",{className:"sec"},"Search Course"));
+    const sRow = h("div",{className:"row"});
+    const sInp = h("input",{type:"text",placeholder:"Course name…",style:{flex:1,marginBottom:0}});
+    sInp.value = state.courseSearchQuery||"";
+    sInp.addEventListener("input", e => { state.courseSearchQuery = e.target.value; });
+    const sBtn = h("button",{className:"btn-ghost",style:{whiteSpace:"nowrap"}},state.courseSearching?"…":"Search");
+    sBtn.onclick = async () => {
+      const q = state.courseSearchQuery;
+      if (!q) return;
+      state.courseSearching = true; state.courseSearchResults = []; state.courseSearchErr = ""; render();
+      try {
+        const r = await fetch("https://api.golfcourseapi.com/v1/courses?name="+encodeURIComponent(q), {headers:{Authorization:"Key KXSGCSOLULGUKSCRQHLBHTCAME"}});
+        const d = await r.json();
+        const list = d.courses||d.data||(Array.isArray(d)?d:[]);
+        state.courseSearchResults = list.slice(0,8);
+        if (!list.length) state.courseSearchErr = "No results — try manual entry.";
+      } catch(e) { state.courseSearchErr = "Search failed — try manual entry."; }
+      state.courseSearching = false; render();
+    };
+    sRow.appendChild(sInp); sRow.appendChild(sBtn);
+    card.appendChild(sRow);
+    if (state.courseSearchErr) card.appendChild(h("div",{className:"err"},state.courseSearchErr));
+    (state.courseSearchResults||[]).forEach(c => {
+      const row = h("div",{className:"player-row",style:{cursor:"pointer"}});
+      row.appendChild(h("div",{style:{flex:1}},h("div",{style:{fontSize:14}},c.club_name||c.name),h("div",{style:{fontSize:11,color:"#666"}},(c.city||"")+", "+(c.state||""))));
+      row.onclick = async () => {
+        state.courseSearching = true; render();
+        try {
+          const r = await fetch("https://api.golfcourseapi.com/v1/courses/"+(c.id||c.course_id), {headers:{Authorization:"Key KXSGCSOLULGUKSCRQHLBHTCAME"}});
+          const d = await r.json();
+          const course = d.course||d;
+          state.apiTees = course.tees||course.tee_boxes||[];
+          state.selectedApiClub = c;
+          state.courseMode = "tees";
+        } catch { state.courseSearchErr = "Could not load course data."; }
+        state.courseSearching = false; render();
+      };
+      card.appendChild(row);
+    });
+    const backBtn = h("button",{className:"btn-dark"},"← Back");
+    backBtn.onclick = () => { state.courseMode = "select"; render(); };
+    card.appendChild(backBtn);
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  // ── TEES mode (after API search) ──
+  if (courseMode === "tees") {
+    const card = h("div",{className:"card"},h("div",{className:"sec"},"Select Tees — "+(state.selectedApiClub?.club_name||"")));
+    (state.apiTees||[]).forEach(t => {
+      const row = h("div",{className:"player-row",style:{cursor:"pointer",border:state.setupCourse?.tee===t.tee_name?"1px solid #4ade80":"1px solid #1a3a1a"}});
+      row.appendChild(h("div",{style:{flex:1}},h("div",{style:{fontSize:14}},t.tee_name),h("div",{style:{fontSize:11,color:"#666"}},"Rtg "+t.course_rating+" / Slp "+t.slope_rating)));
+      row.onclick = () => {
+        const holes = t.holes||[];
+        const holeHdcps = holes.map(hh => String(hh.handicap||""));
+        const holePars = holes.map(hh => String(hh.par||"4"));
+        const par = holePars.reduce((s,p)=>s+(parseInt(p)||4),0);
+        const cd = {id: Date.now().toString(), name:state.selectedApiClub.club_name||state.selectedApiClub.name, tee:t.tee_name, rating:String(t.course_rating||""), slope:String(t.slope_rating||""), par:String(par), holeHdcps, holePars};
+        saveCourseLocal(cd);
+        state.setupCourse = cd;
+        setState({setupStep:"confirm"});
+      };
+      card.appendChild(row);
+    });
+    if (!(state.apiTees||[]).length) card.appendChild(h("div",{style:{color:"#666",fontSize:13}},"No tee data — try manual entry."));
+    const backBtn = h("button",{className:"btn-dark"},"← Back");
+    backBtn.onclick = () => { state.courseMode = "search"; render(); };
+    card.appendChild(backBtn);
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  // ── MANUAL / EDIT mode ──
+  if (courseMode === "manual" || courseMode === "edit") {
+    const isEdit = courseMode === "edit";
+    const ec = isEdit ? state.editingCourse : null;
+    if (isEdit && ec) {
+      state.setupCourseName = ec.name;
+      state.setupTee = ec.tee;
+      state.setupRating = ec.rating;
+      state.setupSlope = ec.slope;
+      state.setupPar = ec.par;
+      state.setupHoleHdcps = [...(ec.holeHdcps||Array(18).fill(""))];
+      state.courseMode = "editing"; // prevent re-init loop
+    }
+    if (!state.setupHoleHdcps) state.setupHoleHdcps = Array(18).fill("");
+    if (!state.setupTee) state.setupTee = "White";
+    if (!state.setupPar) state.setupPar = "72";
+
+    const card = h("div",{className:"card"});
+    card.appendChild(h("div",{className:"sec"},isEdit?"Edit Course":"Manual Entry"));
+    const nameInp = h("input",{type:"text",placeholder:"Course name"});
+    nameInp.value = state.setupCourseName||"";
+    nameInp.addEventListener("input", e => { state.setupCourseName = e.target.value; });
+    card.appendChild(nameInp);
+
+    card.appendChild(h("div",{className:"sec"},"Tees"));
+    const teeRow = h("div",{className:"row"});
+    ["Black","Blue","White","Gold","Red"].forEach(t => {
+      const isActive = state.setupTee === t;
+      const tb = h("button",{style:{flex:1,background:isActive?"#1a5c1a":"#0a130a",border:isActive?"1px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:isActive?"#e4ede4":"#888",padding:"8px 4px",fontSize:12,cursor:"pointer",fontFamily:"Georgia,serif"}},t);
+      tb.onclick = () => { state.setupTee = t; render(); };
+      teeRow.appendChild(tb);
+    });
+    card.appendChild(teeRow);
+
+    card.appendChild(h("div",{className:"sec"},"Rating / Slope / Par"));
+    const rRow = h("div",{className:"row"});
+    const ratingInp = h("input",{type:"number",placeholder:"Rating",style:{flex:1,marginBottom:0}});
+    ratingInp.value = state.setupRating||"";
+    ratingInp.addEventListener("input", e => { state.setupRating = e.target.value; });
+    const slopeInp = h("input",{type:"number",placeholder:"Slope",style:{flex:1,marginBottom:0}});
+    slopeInp.value = state.setupSlope||"";
+    slopeInp.addEventListener("input", e => { state.setupSlope = e.target.value; });
+    const parInp = h("input",{type:"number",placeholder:"Par",style:{flex:1,marginBottom:0}});
+    parInp.value = state.setupPar||"72";
+    parInp.addEventListener("input", e => { state.setupPar = e.target.value; });
+    rRow.appendChild(ratingInp); rRow.appendChild(slopeInp); rRow.appendChild(parInp);
+    card.appendChild(rRow);
+
+    card.appendChild(h("div",{className:"sec"},"Hole Handicap Ratings"));
+    const hdcpGrid = h("div",{style:{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:3}});
+    for(let i=0;i<18;i++) {
+      const cell = h("div",{style:{background:"#080d08",border:"1px solid #1a3a1a",borderRadius:5,padding:"3px 2px",textAlign:"center"}});
+      cell.appendChild(h("div",{style:{fontSize:9,color:"#4ade80"}},"H"+(i+1)));
+      const inp = h("input",{type:"number",style:{width:"100%",background:"transparent",border:"none",borderTop:"1px solid #1a3a1a",color:"#e4ede4",padding:"3px 0",fontSize:11,textAlign:"center",outline:"none",fontFamily:"Georgia,serif",marginTop:2}});
+      inp.value = state.setupHoleHdcps[i]||"";
+      const idx = i;
+      inp.addEventListener("input", e => { state.setupHoleHdcps[idx] = e.target.value; });
+      cell.appendChild(inp);
+      hdcpGrid.appendChild(cell);
+    }
+    card.appendChild(hdcpGrid);
+
+    const saveBtn = h("button",{className:"btn"},isEdit?"Save Changes →":"Save & Continue →");
+    saveBtn.onclick = () => {
+      const cd = {
+        id: isEdit ? ec.id : Date.now().toString(),
+        name: state.setupCourseName||"",
+        tee: state.setupTee||"White",
+        rating: state.setupRating||"72",
+        slope: state.setupSlope||"113",
+        par: state.setupPar||"72",
+        holeHdcps: [...state.setupHoleHdcps],
+        holePars: Array(18).fill("4")
+      };
+      saveCourseLocal(cd);
+      state.setupCourse = cd;
+      state.courseMode = "select";
+      setState({setupStep:"confirm"});
+    };
+    const backBtn = h("button",{className:"btn-dark"},"← Back");
+    backBtn.onclick = () => { state.courseMode = "select"; render(); };
+    card.appendChild(saveBtn); card.appendChild(backBtn);
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  // Fallback
+  state.courseMode = "select";
+  render();
+  return h("div",{});
 }
 
 function buildSetupConfirm() {
@@ -812,9 +982,30 @@ function buildGame() {
       const mbox = h("div",{style:{background:"#080d08",borderRadius:8,padding:"10px 12px",margin:"10px 0",fontSize:13}});
       mbox.appendChild(h("div",{style:{color:"#4ade80",fontSize:10,letterSpacing:2,marginBottom:6}},"MONEY PREVIEW"));
       if (winner==="none") mbox.appendChild(h("div",{style:{color:"#555"}},"No blood."));
-      else if (partner==="alone") mbox.appendChild(h("div",{},h("div",{style:{color:"#e4ede4"}},realPts+" pts × $"+activeDpp+" × 2 = $"+ptVal+"/player"),h("div",{style:{color:winner==="captain"?"#4ade80":"#f87171",marginTop:4}},winner==="captain"?(orderPlayers[curCaptOI]?.name+" collects $"+(ptVal*4)):(orderPlayers[curCaptOI]?.name+" pays $"+(ptVal*4)))));
-      else if (captTeamOI.length===3) mbox.appendChild(h("div",{},h("div",{style:{color:"#4ade80"}},"Winners each +$"+ptVal),h("div",{style:{color:"#f87171",marginTop:4}},"Losers split -$"+(ptVal*3))));
-      else mbox.appendChild(h("div",{},h("div",{style:{color:"#f87171"}},"Losers each -$"+ptVal),h("div",{style:{color:"#4ade80",marginTop:4}},"Winners split +$"+(ptVal*3))));
+      else if (partner==="alone") mbox.appendChild(h("div",{},
+        h("div",{style:{color:"#e4ede4"}},realPts+" pts × $"+activeDpp+" × 2 = $"+ptVal+"/player"),
+        h("div",{style:{color:winner==="captain"?"#4ade80":"#f87171",marginTop:4}},
+          winner==="captain"
+            ? (orderPlayers[curCaptOI]?.name+" collects $"+(ptVal*4))
+            : (orderPlayers[curCaptOI]?.name+" pays $"+(ptVal*4)))));
+      else {
+        // Determine winning and losing team sizes based on who actually won
+        const winTeamOI = winner==="captain" ? captTeamOI : fieldOI;
+        const loseTeamOI = winner==="captain" ? fieldOI : captTeamOI;
+        const winNames = winTeamOI.map(oi => orderPlayers[oi]?.name?.split(" ")[0]||"?").join(", ");
+        const loseNames = loseTeamOI.map(oi => orderPlayers[oi]?.name?.split(" ")[0]||"?").join(", ");
+        if (winTeamOI.length===3) {
+          // 3-man wins: each winner gets ptVal, 2-man losers split 3×ptVal
+          mbox.appendChild(h("div",{},
+            h("div",{style:{color:"#4ade80"}},"Winners ("+winNames+"): each +$"+ptVal),
+            h("div",{style:{color:"#f87171",marginTop:4}},"Losers ("+loseNames+"): split -$"+(ptVal*3)+" (~$"+Math.ceil(ptVal*3/2)+"/$"+Math.floor(ptVal*3/2)+")")));
+        } else {
+          // 2-man wins: each loser pays ptVal, 2-man winners split 3×ptVal
+          mbox.appendChild(h("div",{},
+            h("div",{style:{color:"#f87171"}},"Losers ("+loseNames+"): each -$"+ptVal),
+            h("div",{style:{color:"#4ade80",marginTop:4}},"Winners ("+winNames+"): split +$"+(ptVal*3)+" (~$"+Math.ceil(ptVal*3/2)+"/$"+Math.floor(ptVal*3/2)+")")));
+        }
+      }
       if (pts===7) mbox.appendChild(h("div",{style:{color:"#f59e0b",fontSize:11,marginTop:6}},"🔥 7 pts → 14"));
       card.appendChild(mbox);
     }
