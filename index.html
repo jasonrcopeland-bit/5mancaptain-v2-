@@ -444,8 +444,14 @@ function FiveManCaptain() {
 
   // Load players on mount
   useEffect(() => {
-    const unsub = onPlayers(setPlayers);
-    return unsub;
+    try {
+      const unsub = onPlayers(p => {
+        setPlayers(p);
+      });
+      return unsub;
+    } catch(e) {
+      console.error("Players listener error:", e);
+    }
   }, []);
 
   // Subscribe to active round
@@ -472,7 +478,7 @@ function FiveManCaptain() {
     </div>
   );
 
-  if (!user) return <LoginScreen S={S} onLogin={(u) => { setUser(u); }} />;
+  if (!user) return <LoginScreen S={S} onLogin={(u) => { setUser(u); setScreen("home"); }} />;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function getLightningHoles(setting) {
@@ -610,7 +616,7 @@ function FiveManCaptain() {
   // ── SCREENS ───────────────────────────────────────────────────────────────
 
   if (screen === "home") return (
-    <HomeScreen S={S} user={user} players={players} roundHistory={roundHistory}
+    <HomeScreen S={S} user={user} players={players} roundHistory={roundHistory||[]}
       setScreen={setScreen} signOut={pinLogout}
       onJoinRound={async (code) => {
         const r = await getRoundByCode(code);
@@ -1059,7 +1065,7 @@ function HomeScreen({ S, user, players, roundHistory, setScreen, signOut, onJoin
       {roundHistory.length > 0 && (
         <div style={S.card}>
           <div style={S.sec}>Last Round</div>
-          <div style={{fontSize:12,color:"#666",marginBottom:6}}>{roundHistory[0].courseData?.name} · {roundHistory[0].createdAt?.toDate?.()?.toLocaleDateString()}</div>
+          <div style={{fontSize:12,color:"#666",marginBottom:6}}>{roundHistory[0]?.courseData?.name} · {roundHistory[0]?.date || ""}</div>
           {(roundHistory[0].results||[]).sort((a,b)=>b.money-a.money).map((r,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
               <span style={{fontSize:14,color:i===0?"#f59e0b":"#e4ede4"}}>{r.name}</span>
