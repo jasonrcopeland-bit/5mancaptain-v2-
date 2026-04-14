@@ -427,9 +427,23 @@ function FiveManCaptain() {
   const [joinCode, setJoinCode] = useState("");
   const [joinErr, setJoinErr] = useState("");
 
-  // Auth listener
+  // Auth listener — handle both redirect result and state changes
   useEffect(() => {
-    const unsub = onAuthChange(u => { setUser(u); setAuthLoading(false); });
+    // First check if we're returning from a Google redirect
+    auth.getRedirectResult().then(result => {
+      if (result && result.user) {
+        setUser(result.user);
+        setAuthLoading(false);
+      }
+    }).catch(e => {
+      console.error("Redirect result error:", e);
+    });
+
+    // Also listen for auth state changes
+    const unsub = auth.onAuthStateChanged(u => {
+      setUser(u);
+      setAuthLoading(false);
+    });
     return unsub;
   }, []);
 
