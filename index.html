@@ -46,9 +46,15 @@
 
 <script>
 // ── Firebase ──────────────────────────────────────────────────────────────────
-// Hide loading spinner immediately
-document.getElementById("loading").style.display = "none";
+// Debug logger
+function dbg(msg) {
+  const el = document.getElementById("debug-log");
+  if (el) el.innerHTML += msg + "<br>";
+  console.log(msg);
+}
+dbg("1. Script started");
 
+dbg("2. Initializing Firebase...");
 const fbApp = firebase.initializeApp({
   apiKey: "AIzaSyD_Xp8LrkX8BsJ4E65LZVPAhidDXxQyzCw",
   authDomain: "man-captain-scoring.firebaseapp.com",
@@ -58,6 +64,7 @@ const fbApp = firebase.initializeApp({
   appId: "1:544174327153:web:1e8493a7ceacf2741e62d0"
 });
 const db = firebase.firestore();
+dbg("3. Firebase initialized");
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state = {
@@ -283,6 +290,9 @@ function h(tag, attrs, ...children) {
 }
 
 function render() {
+  dbg("render: screen="+state.screen+" user="+(state.user?.name||"none"));
+  const loading = document.getElementById("loading");
+  if (loading) loading.style.display = "none";
   const app = document.getElementById("app");
   app.innerHTML = "";
   let screen;
@@ -1971,6 +1981,7 @@ function buildStats() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
+  dbg("4. init() called");
   // Render immediately so user sees login screen, not loading forever
   const saved = loadSession();
   if (saved) {
@@ -1979,7 +1990,9 @@ async function init() {
   } else {
     state.screen = "login";
   }
+  dbg("5. calling render()...");
   render(); // Show login or home right away
+  dbg("6. render() returned");
 
   // Load players in background — don't block render
   if (state.user) {
