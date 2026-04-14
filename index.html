@@ -71,8 +71,8 @@ let state = {
   setupStep: "players",
   setupPlayers: [null,null,null,null,null],
   setupDpp: "",
-  setupPressMode: "custom",
-  setupLightning: "16",
+  setupPressMode: "",
+  setupLightning: "",
   setupCourse: null,
   // Game
   round: null,
@@ -306,7 +306,111 @@ function buildScreen() {
   if (screen === "summary") return buildSummary();
   if (screen === "history") return buildHistory();
   if (screen === "stats") return buildStats();
+  if (screen === "midround-history") return buildMidroundHistory();
+  if (screen === "edithole") return buildEditHole();
   return buildHome();
+}
+
+function buildEditHole() {
+  const hIdx = state.editingHole;
+  const h2 = state.holes[hIdx];
+  if (!h2) { setState({screen:"game"}); return h("div",{}); }
+  const orderPlayers = (state.round?.playerOrder||[]).map(id => state.players.find(p=>p.id===id)||{name:"?"});
+  const captTeamOI = h2.partner==="alone" ? [h2.captainOI] : [h2.captainOI, h2.partnerOI].filter(x=>x!==null&&x!==undefined);
+  const fieldOI = [0,1,2,3,4].filter(i=>!captTeamOI.includes(i));
+
+  let editWinner = state.editWinner !== undefined ? state.editWinner : h2.winner;
+  let editPts = state.editPts !== undefined ? state.editPts : (h2.pts===14?7:h2.pts);
+
+  const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"EDIT"),h("div",{className:"sub"},"HOLE "+h2.hole)));
+  const card = h("div",{className:"card"});
+  card.appendChild(h("div",{className:"sec"},"Capt: "+(orderPlayers[h2.captainOI]?.name||"?")+(h2.partner==="alone"?" 🦅 Lone":h2.partnerOI!==null?" + "+(orderPlayers[h2.partnerOI]?.name||"?"):"")));
+  card.appendChild(h("div",{style:{display:"flex",gap:8,marginBottom:14}},
+    h("div",{style:{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}},h("div",{style:{fontSize:9,letterSpacing:2,color:"#4ade80",marginBottom:4}},"CAPT'S TEAM"),...captTeamOI.map(oi=>h("div",{style:{fontSize:13}},orderPlayers[oi]?.name||"?"))),
+    h("div",{style:{flex:1,background:"#080d08",borderRadius:8,padding:"10px 12px"}},h("div",{style:{fontSize:9,letterSpacing:2,color:"#888",marginBottom:4}},"FIELD"),...fieldOI.map(oi=>h("div",{style:{fontSize:13,color:"#aaa"}},orderPlayers[oi]?.name||"?")))
+  ));
+
+  card.appendChild(h("div",{className:"sec"},"Who Won?"));
+  const winRow = h("div",{style:{display:"flex",gap:6,marginBottom:10}});
+  [{k:"captain",lbl:"Captain's Team"},{k:"field",lbl:"Field"},{k:"none",lbl:"No Blood"}].forEach(({k,lbl}) => {
+    const wb = h("button",{style:{flex:k==="none"?0.7:1,background:editWinner===k?"#162616":"#0a130a",border:editWinner===k?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:editWinner===k?"#e4ede4":"#bbb",padding:"12px 6px",fontSize:12,cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"center"}},lbl);
+    wb.onclick = () => { state.editWinner=k; if(k==="none") state.editPts=null; render(); };
+    winRow.appendChild(wb);
+  });
+  card.appendChild(winRow);
+
+  if (editWinner && editWinner !== "none") {
+    card.appendChild(h("div",{className:"sec"},"Points"));
+    const ptGrid = h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5,marginBottom:12}});
+    [1,2,3,4,5,6,7].forEach(p => {
+      const pb = h("button",{style:{background:editPts===p?"#162616":"#0a130a",border:editPts===p?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:editPts===p?"#e4ede4":"#bbb",padding:"12px 4px",fontSize:18,cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"center"}},p+(p===7?" ×2":""));
+      pb.onclick = () => { state.editPts=p; render(); };
+      ptGrid.appendChild(pb);
+    });
+    card.appendChild(ptGrid);
+  }
+
+  const saveBtn = h("button",{className:"btn",style:{opacity:(editWinner==="none"||editPts)?1:0.4}},"Save & Recalculate");
+  saveBtn.onclick = async () => {
+    if (!editWinner||(editWinner!=="none"&&!editPts)) return;
+    const realPts = editPts===7?14:(editPts||0);
+    const newHoles = [...state.holes];
+    newHoles[hIdx] = {...newHoles[hIdx], winner:editWinner, pts:realPts};
+    // Replay ledger from this hole
+    const hdcps = state.hdcpInfo?.courseHdcps;
+    let runLedger = hIdx===0 ? [0,0,0,0,0] : [...(newHoles[hIdx-1].ledgerAfter||[0,0,0,0,0])];
+    for(let i=hIdx; i<newHoles.length; i++) {
+      runLedger = applyHoleMoney(newHoles[i], runLedger, newHoles[i].dpp||state.activeDpp, hdcps);
+      newHoles[i] = {...newHoles[i], ledgerAfter:[...runLedger]};
+    }
+    await updateRound(state.roundId, {holes:newHoles, ledger:runLedger});
+    state.editWinner = undefined; state.editPts = undefined;
+    setState({holes:newHoles, ledger:runLedger, screen:"midround-history", editingHole:null});
+  };
+  const cancelBtn = h("button",{className:"btn-dark"},"← Cancel");
+  cancelBtn.onclick = () => { state.editWinner=undefined; state.editPts=undefined; setState({screen:"midround-history"}); };
+  card.appendChild(saveBtn); card.appendChild(cancelBtn);
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function buildMidroundHistory() {
+  const {round, holes, ledger} = state;
+  const orderPlayers = (round?.playerOrder||[]).map(id => state.players.find(p=>p.id===id)||{name:"?"});
+  const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"HOLE LOG"),h("div",{className:"sub"},(round?.gameCode||"")+" · "+(round?.courseData?.name||""))));
+
+  // Current ledger
+  const ledgerDiv = h("div",{style:{display:"flex",background:"#0a130a",borderBottom:"1px solid #1a3a1a"}});
+  orderPlayers.forEach((p,oi) => {
+    const item = h("div",{style:{flex:1,padding:"7px 3px",textAlign:"center",borderRight:"1px solid #1a3a1a"}});
+    item.appendChild(h("div",{style:{fontSize:10,color:"#555"}},p.name?.split(" ")[0]||"?"));
+    item.appendChild(h("div",{style:{fontSize:13,fontWeight:700,color:ledger[oi]>=0?"#4ade80":"#f87171"}},fmt$(ledger[oi])));
+    ledgerDiv.appendChild(item);
+  });
+  wrap.appendChild(ledgerDiv);
+
+  const card = h("div",{className:"card"},h("div",{className:"sec"},"Completed Holes"));
+  if (!holes.length) card.appendChild(h("div",{style:{color:"#555",padding:12}},"No holes completed yet."));
+  holes.forEach((h2,hIdx) => {
+    const row = h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #1a3a1a",padding:"8px 0"}});
+    const info = h("div",{});
+    info.appendChild(h("div",{style:{display:"flex",gap:12,alignItems:"center"}},
+      h("span",{style:{color:"#4ade80",fontWeight:700,fontSize:14}},"H"+h2.hole),
+      h("span",{style:{fontSize:12,color:"#777"}},(orderPlayers[h2.captainOI]?.name||"?")+(h2.partner==="alone"?" 🦅":h2.partnerOI!==null?" +"+(orderPlayers[h2.partnerOI]?.name||"?"):"")),
+      h("span",{style:{fontSize:13,color:h2.winner==="none"?"#444":h2.winner==="captain"?"#4ade80":"#f87171"}},h2.winner==="none"?"No blood":(h2.winner==="captain"?"Capt":"Field")+" "+h2.pts+"pts")
+    ));
+    const editBtn = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 10px"}},"Edit");
+    editBtn.onclick = () => setState({editingHole:hIdx, screen:"edithole"});
+    row.appendChild(info); row.appendChild(editBtn);
+    card.appendChild(row);
+  });
+
+  const backBtn = h("button",{className:"btn-dark"},"← Back to Game");
+  backBtn.onclick = () => setState({screen:"game"});
+  card.appendChild(backBtn);
+  wrap.appendChild(card);
+  wrap.appendChild(buildNav("history"));
+  return wrap;
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────────
@@ -419,8 +523,25 @@ function buildNav(active) {
   tabs.forEach(([s,icon,lbl]) => {
     const btn = h("button",{className:active===s?"active":""},h("div",{style:{fontSize:16}},icon),lbl);
     btn.onclick = () => {
-      if (s==="history") loadHistory().then(h => setState({screen:"history",history:h}));
-      else setState({screen:s});
+      if (s === "history") {
+        // Show hole history if mid-round, otherwise load full history
+        if (state.round && state.screen === "game") {
+          setState({screen:"midround-history"});
+        } else {
+          loadHistory().then(rounds => setState({screen:"history", history:rounds}));
+        }
+      } else if (s === "newround") {
+        // If round in progress, warn first
+        if (state.round && state.round.status === "active") {
+          setState({screen:"game"}); // stay in game if active
+        } else {
+          setState({screen:"newround", setupStep:"players", setupPlayers:[null,null,null,null,null], setupDpp:"", setupPressMode:"", setupLightning:""});
+        }
+      } else if (s === "home") {
+        setState({screen:"home"});
+      } else {
+        setState({screen:s});
+      }
     };
     nav.appendChild(btn);
   });
@@ -512,7 +633,7 @@ function buildSetupPlayers() {
   });
   card.appendChild(lRow);
 
-  const ok = setupPlayers.every(Boolean) && setupDpp;
+  const ok = setupPlayers.every(Boolean) && setupDpp && setupPressMode && setupLightning;
   const nextBtn = h("button",{className:"btn",style:{opacity:ok?1:0.4}},"Next: Course →");
   nextBtn.onclick = () => { if(ok) { state.courseMode = "select"; setState({setupStep:"course"}); } };
   const backBtn = h("button",{className:"btn-dark"},"← Home");
@@ -526,7 +647,7 @@ function buildSetupPlayers() {
 const CRESS_CREEK = {
   id: "cress-creek",
   name: "Cress Creek Country Club",
-  tee: "White",
+  tee: "Blue",
   rating: "71.9",
   slope: "132",
   par: "72",
@@ -589,9 +710,7 @@ function buildSetupCourse() {
 
     // Search / Manual options
     card.appendChild(h("div",{className:"sec"},"Other Course"));
-    const searchBtn = h("button",{className:"btn"},"🔍 Search Course by Name");
-    searchBtn.onclick = () => { state.courseMode = "search"; state.courseSearchQuery = ""; state.courseSearchResults = []; state.courseSearchErr = ""; render(); };
-    const manualBtn = h("button",{className:"btn-dark"},"✏️ Enter Manually");
+    const manualBtn = h("button",{className:"btn"},"✏️ Enter Course Manually");
     manualBtn.onclick = () => {
       state.courseMode = "manual";
       state.setupCourseName = ""; state.setupTee = "White"; state.setupRating = ""; state.setupSlope = ""; state.setupPar = "72";
@@ -600,7 +719,7 @@ function buildSetupCourse() {
     };
     const backBtn = h("button",{className:"btn-dark"},"← Back");
     backBtn.onclick = () => setState({setupStep:"players"});
-    card.appendChild(searchBtn); card.appendChild(manualBtn); card.appendChild(backBtn);
+    card.appendChild(manualBtn); card.appendChild(backBtn);
     wrap.appendChild(card);
     return wrap;
   }
@@ -1033,7 +1152,22 @@ function buildGame() {
     card.appendChild(confirmBtn); card.appendChild(backBtn);
   }
 
-  wrap.appendChild(card);
+  // Reset hole button — always visible so captain pick can be redone
+  const resetCard = h("div",{className:"card",style:{marginTop:0}});
+  resetCard.appendChild(h("div",{className:"sec"},"Current Hole Options"));
+  const resetBtn = h("button",{className:"btn-dark"},"↩ Reset This Hole (redo captain pick)");
+  resetBtn.onclick = () => setState({step:"captain", partner:null, winner:null, pts:null, showPress:false, pressingPlayer:null});
+  resetCard.appendChild(resetBtn);
+
+  // Edit last completed hole
+  if (holes.length > 0) {
+    const lastH = holes[holes.length-1];
+    const editLastBtn = h("button",{className:"btn-dark",style:{marginTop:6}},"✏️ Edit Hole "+(holes.length)+" result");
+    editLastBtn.onclick = () => setState({editingHole: holes.length-1, step:"edithole"});
+    resetCard.appendChild(editLastBtn);
+  }
+  wrap.appendChild(resetCard);
+  wrap.appendChild(buildNav("game"));
   return wrap;
 }
 
