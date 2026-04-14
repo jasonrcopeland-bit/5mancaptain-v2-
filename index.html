@@ -531,11 +531,16 @@ function buildNav(active) {
           loadHistory().then(rounds => setState({screen:"history", history:rounds}));
         }
       } else if (s === "newround") {
-        // If round in progress, warn first
         if (state.round && state.round.status === "active") {
-          setState({screen:"game"}); // stay in game if active
+          // Round in progress — go to game screen
+          setState({screen:"game"});
         } else {
-          setState({screen:"newround", setupStep:"players", setupPlayers:[null,null,null,null,null], setupDpp:"", setupPressMode:"", setupLightning:""});
+          // No active round — start setup fresh
+          state.setupPlayers = [null,null,null,null,null];
+          state.setupDpp = "";
+          state.setupPressMode = "";
+          state.setupLightning = "";
+          setState({screen:"newround", setupStep:"players"});
         }
       } else if (s === "home") {
         setState({screen:"home"});
@@ -616,6 +621,7 @@ function buildSetupPlayers() {
   card.appendChild(dppInp);
 
   card.appendChild(h("div",{className:"sec"},"Press Style"));
+  const pressDescs = {custom:"Pressing player names any $/pt amount",increment:"Each press adds the original $/pt (e.g. $3→$6→$9)",double:"Each press doubles the rate (e.g. $3→$6→$12)"};
   const pressRow = h("div",{className:"row"});
   [["custom","Custom"],["increment","Fixed +"],["double","Double"]].forEach(([k,lbl]) => {
     const pb = h("button",{className:"btn-ghost",style:{flex:1,fontSize:12,...(setupPressMode===k?{border:"1px solid #4ade80",color:"#4ade80"}:{})}},lbl);
@@ -623,6 +629,7 @@ function buildSetupPlayers() {
     pressRow.appendChild(pb);
   });
   card.appendChild(pressRow);
+  if (setupPressMode) card.appendChild(h("div",{style:{fontSize:12,color:"#888",marginBottom:8}},pressDescs[setupPressMode]||""));
 
   card.appendChild(h("div",{className:"sec"},"Lightning Round"));
   const lRow = h("div",{className:"row"});
@@ -684,7 +691,7 @@ function buildSetupCourse() {
     const ccBtn = h("div",{className:"player-row",style:{cursor:"pointer"}});
     ccBtn.appendChild(h("div",{style:{flex:1}},
       h("div",{style:{fontSize:15,color:"#c5e8c5"}},"⛳ Cress Creek CC"),
-      h("div",{style:{fontSize:11,color:"#666"}},"White · Rtg 71.9 / Slp 132")));
+      h("div",{style:{fontSize:11,color:"#666"}},"Blue · Rtg 71.9 / Slp 132")));
     ccBtn.appendChild(h("span",{style:{color:"#4ade80",fontSize:18}},"→"));
     ccBtn.onclick = () => { state.setupCourse = {...CRESS_CREEK}; setState({setupStep:"confirm"}); };
     card.appendChild(ccBtn);
@@ -894,8 +901,11 @@ function buildSetupConfirm() {
   const {setupPlayers, setupCourse, setupDpp, setupPressMode, setupLightning} = state;
   const hdcp = setupCourse ? computeHdcp(setupCourse, setupPlayers) : null;
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"CONFIRM ROUND")));
-  const card = h("div",{className:"card"},h("div",{className:"sec"},"Course Handicaps — "+(setupCourse?.name||"")+" ("+(setupCourse?.tee||"")+")"),h("div",{style:{fontSize:11,color:"#555",marginBottom:10}},"Low hdcp: "+(hdcp?.low||0)+" — all others play relative to this."));
+  const card = h("div",{className:"card"});
   
+  // Course handicaps
+  card.appendChild(h("div",{className:"sec"},"Course Handicaps — "+(setupCourse?.name||"")+" ("+(setupCourse?.tee||"")+")"));
+  card.appendChild(h("div",{style:{fontSize:11,color:"#555",marginBottom:10}},"Low hdcp: "+(hdcp?.low||0)+" — all others play relative to this."));
   setupPlayers.forEach((p,i) => {
     const row = h("div",{className:"player-row",style:{cursor:"default"}});
     row.appendChild(h("span",{style:{flex:1,fontSize:15}},(i+1)+". "+p.name));
@@ -904,6 +914,36 @@ function buildSetupConfirm() {
     row.appendChild(hdcpSpan);
     card.appendChild(row);
   });
+
+  // Reorder section
+  card.appendChild(h("div",{className:"sec"},"Adjust Tee Order (tap ↑↓ to move)"));
+  card.appendChild(h("div",{style:{fontSize:11,color:"#888",marginBottom:8}},"Player 1 is Captain on hole 1."));
+  setupPlayers.forEach((p,i) => {
+    const row = h("div",{style:{display:"flex",alignItems:"center",background:"#080d08",border:"1px solid #1a3a1a",borderRadius:8,padding:"8px 12px",marginBottom:6,gap:8}});
+    row.appendChild(h("span",{style:{color:"#4ade80",fontWeight:700,minWidth:20}},(i+1)));
+    row.appendChild(h("span",{style:{flex:1,fontSize:14}},p.name));
+    const upBtn = h("button",{className:"btn-ghost",style:{padding:"4px 10px",fontSize:16,opacity:i===0?0.3:1}},"↑");
+    upBtn.onclick = () => {
+      if(i===0) return;
+      const np=[...state.setupPlayers]; [np[i],np[i-1]]=[np[i-1],np[i]];
+      setState({setupPlayers:np});
+    };
+    const downBtn = h("button",{className:"btn-ghost",style:{padding:"4px 10px",fontSize:16,opacity:i===setupPlayers.length-1?0.3:1}},"↓");
+    downBtn.onclick = () => {
+      if(i===setupPlayers.length-1) return;
+      const np=[...state.setupPlayers]; [np[i],np[i+1]]=[np[i+1],np[i]];
+      setState({setupPlayers:np});
+    };
+    row.appendChild(upBtn); row.appendChild(downBtn);
+    card.appendChild(row);
+  });
+
+  // Round summary
+  const summaryDiv = h("div",{style:{background:"#080d08",borderRadius:8,padding:"10px 12px",marginTop:8,marginBottom:8}});
+  summaryDiv.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:4}},h("span",{style:{color:"#888"}},"$/pt"),h("span",{style:{color:"#e4ede4"}},"$"+setupDpp)));
+  summaryDiv.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:4}},h("span",{style:{color:"#888"}},"Press"),h("span",{style:{color:"#e4ede4",textTransform:"capitalize"}},setupPressMode)));
+  summaryDiv.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between"}},h("span",{style:{color:"#888"}},"Lightning"),h("span",{style:{color:"#f59e0b"}},"⚡ Holes "+(setupLightning==="14"?"14,17,18":"16,17,18"))));
+  card.appendChild(summaryDiv);
 
   const startBtn = h("button",{className:"btn"},"⛳ Start Round");
   startBtn.onclick = async () => {
@@ -917,9 +957,18 @@ function buildSetupConfirm() {
       activeDpp: parseFloat(setupDpp),
     });
     const hdcpInfo = computeHdcp(setupCourse, setupPlayers);
+    // Store full player objects directly in round so they're always available
+    const roundState = {
+      playerOrder: setupPlayers.map(p=>p.id),
+      playerObjects: setupPlayers, // full player data
+      courseData: setupCourse,
+      dpp: parseFloat(setupDpp),
+      pressMode: setupPressMode,
+      lightningRound: setupLightning,
+      gameCode, id, status:"active"
+    };
     setState({
-      screen:"game", roundId:id,
-      round:{playerOrder:setupPlayers.map(p=>p.id), players:setupPlayers, courseData:setupCourse, dpp:parseFloat(setupDpp), pressMode:setupPressMode, lightningRound:setupLightning, gameCode, id},
+      screen:"game", roundId:id, round:roundState,
       hdcpInfo, activeDpp:parseFloat(setupDpp),
       ledger:[0,0,0,0,0], currentHole:0, holes:[], pressLog:[],
       step:"captain", partner:null, winner:null, pts:null, passed:[], editingHole:null
@@ -937,7 +986,7 @@ function buildGame() {
   const {round, holes, ledger, currentHole, activeDpp, passed, step, partner, winner, pts, hdcpInfo, pressLog, editingHole, showPress, pressingPlayer} = state;
   if (!round) return buildHome();
   const holeNum = currentHole+1;
-  const orderPlayers = (round.playerOrder||[]).map(id => state.players.find(p=>p.id===id)||{name:"?",index:0});
+  const orderPlayers = round.playerObjects || (round.playerOrder||[]).map(id => state.players.find(p=>p.id===id)||{name:"?",index:0});
   const curCaptOI = captainFor(currentHole, ledger, passed, round.lightningRound||"16");
   const lh = getLightningHoles(round.lightningRound||"16");
   const isLightning = lh.includes(currentHole);
