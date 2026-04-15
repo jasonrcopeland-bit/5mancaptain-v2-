@@ -471,7 +471,12 @@ function buildLogin() {
       card.appendChild(btn);
     });
     const regBtn = h("button",{className:"btn",style:{marginTop:16}},"+ New Player / First Time");
-    regBtn.onclick = () => setState({loginMode:"register", loginErr:"", loginName:"", loginNewPin:"", loginConfirmPin:""});
+    regBtn.onclick = async () => {
+      regBtn.textContent = "Loading...";
+      regBtn.disabled = true;
+      try { state.players = await loadPlayers(); } catch(e) { console.error(e); }
+      setState({loginMode:"register", regSubMode:"pick", loginErr:"", loginName:"", loginNewPin:"", loginConfirmPin:""});
+    };
     card.appendChild(regBtn);
   }
 
