@@ -27,9 +27,11 @@
     .btn-danger { width:100%; background:#1a0808; border:1px solid #3a1a1a; border-radius:8px; color:#f87171; padding:12px; font-size:14px; font-family:Georgia,serif; cursor:pointer; margin-top:6px; display:block; }
     .err { font-size:13px; color:#f87171; margin:7px 0; padding:8px 10px; background:#1a0808; border-radius:8px; }
     .row { display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
-    .nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:#0a130a; border-top:1px solid #1a3a1a; display:flex; z-index:100; }
-    .nav button { flex:1; background:transparent; border:none; border-top:2px solid transparent; color:#444; padding:10px 4px 8px; font-size:10px; cursor:pointer; font-family:Georgia,serif; }
-    .nav button.active { color:#4ade80; border-top-color:#4ade80; }
+    .nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:#0d1a0d; border-top:2px solid #1e4a1e; display:flex; z-index:9999; padding-bottom:env(safe-area-inset-bottom,0px); box-shadow:0 -4px 20px rgba(0,0,0,0.6); }
+    .nav button { flex:1; background:transparent; border:none; border-top:3px solid transparent; color:#555; padding:12px 4px 10px; font-size:11px; cursor:pointer; font-family:Georgia,serif; letter-spacing:0.3px; -webkit-tap-highlight-color:transparent; }
+    .nav button.active { color:#4ade80; border-top-color:#4ade80; background:rgba(74,222,128,0.05); }
+    .nav button:active { opacity:0.7; }
+    #app { padding-bottom:calc(64px + env(safe-area-inset-bottom,0px)); }
     .player-row { display:flex; align-items:center; background:#080d08; border:1px solid #1a3a1a; border-radius:8px; padding:11px 13px; margin-bottom:7px; gap:10px; }
     .pin-input { font-size:24px; text-align:center; letter-spacing:12px; }
     .loading { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:#4ade80; font-size:18px; }
@@ -123,7 +125,7 @@ function computeHdcp(cd, players) {
   const low = Math.min(...courseHdcps);
   const extras = courseHdcps.map(ch => Math.max(0, ch-low));
   const sHoles = extras.map(e => strokeHolesForPlayer(e, cd.holeHdcps||[]));
-  return {courseHdcps, low, extras, sHoles};
+  return {courseHdcps, low, extras, sHoles, cd};
 }
 
 function whoIsFurtherBehind(pis, ledger, hdcps) {
@@ -133,7 +135,8 @@ function whoIsFurtherBehind(pis, ledger, hdcps) {
 }
 
 function applyHoleMoney(h, ledger, dpp, hdcps) {
-  const realPts = h.pts===7?14:(h.pts||0);
+  // pts: 1-7 = straight, 70 = 7☂ (14pts), 80 = 8☂ (16pts)
+  const realPts = h.pts===70?14:h.pts===80?16:(h.pts||0);
   if (!h.winner||h.winner==="none"||!realPts) return [...ledger];
   const nl = [...ledger];
   const isLone = h.partner==="alone";
@@ -335,7 +338,7 @@ function buildEditHole() {
   const fieldOI = [0,1,2,3,4].filter(i=>!captTeamOI.includes(i));
 
   let editWinner = state.editWinner !== undefined ? state.editWinner : h2.winner;
-  let editPts = state.editPts !== undefined ? state.editPts : (h2.pts===14?7:h2.pts);
+  let editPts = state.editPts !== undefined ? state.editPts : (h2.pts===14?70:h2.pts===16?80:h2.pts);
 
   const wrap = h("div",{},h("div",{className:"hdr"},h("div",{className:"logo"},"EDIT"),h("div",{className:"sub"},"HOLE "+h2.hole)));
   const card = h("div",{className:"card"});
@@ -356,10 +359,12 @@ function buildEditHole() {
 
   if (editWinner && editWinner !== "none") {
     card.appendChild(h("div",{className:"sec"},"Points"));
-    const ptGrid = h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5,marginBottom:12}});
-    [1,2,3,4,5,6,7].forEach(p => {
-      const pb = h("button",{style:{background:editPts===p?"#162616":"#0a130a",border:editPts===p?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:editPts===p?"#e4ede4":"#bbb",padding:"12px 4px",fontSize:18,cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"center"}},p+(p===7?" ×2":""));
-      pb.onclick = () => { state.editPts=p; render(); };
+    const ptGrid = h("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:12}});
+    [{val:1,lbl:"1"},{val:2,lbl:"2"},{val:3,lbl:"3"},{val:4,lbl:"4"},
+     {val:5,lbl:"5"},{val:6,lbl:"6"},{val:7,lbl:"7"},
+     {val:70,lbl:"7☂"},{val:80,lbl:"8☂"}].forEach(({val,lbl}) => {
+      const pb = h("button",{style:{background:editPts===val?"#162616":"#0a130a",border:editPts===val?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:editPts===val?"#e4ede4":"#bbb",padding:"12px 4px",fontSize:val>9?15:18,cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"center"}},lbl);
+      pb.onclick = () => { state.editPts=val; render(); };
       ptGrid.appendChild(pb);
     });
     card.appendChild(ptGrid);
@@ -368,7 +373,7 @@ function buildEditHole() {
   const saveBtn = h("button",{className:"btn",style:{opacity:(editWinner==="none"||editPts)?1:0.4}},"Save & Recalculate");
   saveBtn.onclick = async () => {
     if (!editWinner||(editWinner!=="none"&&!editPts)) return;
-    const realPts = editPts===7?14:(editPts||0);
+    const realPts = editPts===70?14:editPts===80?16:(editPts||0);
     const newHoles = [...state.holes];
     newHoles[hIdx] = {...newHoles[hIdx], winner:editWinner, pts:realPts};
     // Replay ledger from this hole
@@ -746,7 +751,7 @@ function buildSpectate() {
       h("span",{style:{color:"#4ade80",fontWeight:700,fontSize:14}},"H"+h2.hole),
       h("span",{style:{fontSize:12,color:"#888"}},captName+" "+partName),
       h("span",{style:{fontSize:13,color:h2.winner==="none"?"#555":h2.winner==="captain"?"#4ade80":"#f87171",fontWeight:700}},
-        h2.winner==="none"?"No blood":(h2.winner==="captain"?"Capt":"Field")+" "+h2.pts+"pts")
+        h2.winner==="none"?"No blood":(h2.winner==="captain"?"Capt":"Field")+" "+(h2.pts===14?"7☂":h2.pts===16?"8☂":h2.pts)+"pts")
     ));
     const pRow = h("div",{style:{display:"flex",flexWrap:"wrap",gap:4}});
     orderPlayers.forEach((p,oi)=>{
@@ -1058,7 +1063,7 @@ function buildNav(active) {
   const tabs = [["home","🏠","Home"],["newround","⛳","Round"],["history","📋","History"],["stats","📊","Stats"],["club","⛳","People & Places"]];
   const nav = h("div",{className:"nav"});
   tabs.forEach(([s,icon,lbl]) => {
-    const btn = h("button",{className:active===s?"active":""},h("div",{style:{fontSize:16}},icon),lbl);
+    const btn = h("button",{className:active===s?"active":""},h("div",{style:{fontSize:20,marginBottom:2}},icon),lbl);
     btn.onclick = () => {
       if (s === "history") {
         // Show hole history if mid-round, otherwise load full history
@@ -1590,7 +1595,21 @@ function buildGame() {
   const curCaptOI = captainFor(currentHole, ledger, passed, round.lightningRound||"16");
   const lh = getLightningHoles(round.lightningRound||"16");
   const isLightning = lh.includes(currentHole);
-  const strokesThisHole = hdcpInfo ? [0,1,2,3,4].map(oi => hdcpInfo.sHoles[oi]?.includes(holeNum)) : Array(5).fill(false);
+  // strokesThisHole returns count: 0, 1, or 2 strokes per player on this hole
+  const strokesThisHole = hdcpInfo ? [0,1,2,3,4].map(oi => {
+    const holes = hdcpInfo.sHoles[oi] || [];
+    // Count how many stroke allocations this player gets on this hole
+    // First 18 strokes: one per hole. Strokes 19-36: second pass on same holes
+    const extras = hdcpInfo.extras[oi] || 0;
+    let count = 0;
+    if (holes.includes(holeNum)) count++;
+    // Second stroke: if extras > 18, they get a second pass
+    if (extras > 18) {
+      const secondPassHoles = strokeHolesForPlayer(extras - 18, hdcpInfo.cd?.holeHdcps || []);
+      if (secondPassHoles.includes(holeNum)) count++;
+    }
+    return count;
+  }) : Array(5).fill(0);
   
   let captTeamOI=[], fieldOI=[];
   if (partner !== null) {
@@ -1620,7 +1639,7 @@ function buildGame() {
     const item = h("div",{style:{flex:1,padding:"7px 3px",textAlign:"center",borderRight:"1px solid #1a3a1a",minWidth:68}});
     item.appendChild(h("div",{style:{fontSize:10,color:"#555"}},p.name?.split(" ")[0]||"?"));
     item.appendChild(h("div",{style:{fontSize:13,fontWeight:700,color:ledger[oi]>=0?"#4ade80":"#f87171"}},fmt$(ledger[oi])));
-    if(strokesThisHole[oi]) item.appendChild(h("div",{style:{fontSize:9,color:"#f59e0b"}},"+1"));
+    if(strokesThisHole[oi]>0) item.appendChild(h("div",{style:{fontSize:10,color:"#f59e0b",letterSpacing:1}},strokesThisHole[oi]===2?"••":"•"));
     ledgerDiv.appendChild(item);
   });
   wrap.appendChild(ledgerDiv);
@@ -1689,7 +1708,8 @@ function buildGame() {
     // Stroke badges
     const strokeDiv = h("div",{style:{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}});
     orderPlayers.forEach((p,oi) => {
-      const badge = h("div",{style:{fontSize:12,color:strokesThisHole[oi]?"#f59e0b":"#444",background:strokesThisHole[oi]?"#1a1000":"#080d08",borderRadius:6,padding:"4px 8px",border:strokesThisHole[oi]?"1px solid #3a2000":"1px solid #1a3a1a"}},(p.name?.split(" ")[0]||"?")+" "+(strokesThisHole[oi]?"+1":"—"));
+      const strokeDots = strokesThisHole[oi]===2?"••":strokesThisHole[oi]===1?"•":"—";
+      const badge = h("div",{style:{fontSize:12,color:strokesThisHole[oi]?"#f59e0b":"#444",background:strokesThisHole[oi]?"#1a1000":"#080d08",borderRadius:6,padding:"4px 8px",border:strokesThisHole[oi]?"1px solid #3a2000":"1px solid #1a3a1a"}},(p.name?.split(" ")[0]||"?")+" "+strokeDots);
       strokeDiv.appendChild(badge);
     });
     card.appendChild(strokeDiv);
@@ -1699,7 +1719,7 @@ function buildGame() {
     loneBtn.onclick = () => setState({partner:"alone"});
     pickDiv.appendChild(loneBtn);
     [0,1,2,3,4].filter(oi=>oi!==curCaptOI).forEach(oi => {
-      const pb = h("button",{style:{flex:1,minWidth:"47%",background:partner===oi?"#162616":"#0a130a",border:partner===oi?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:partner===oi?"#e4ede4":"#bbb",padding:"13px 8px",fontSize:14,cursor:"pointer",fontFamily:"Georgia,serif",marginBottom:6,textAlign:"center"}},(orderPlayers[oi]?.name||"?")+(strokesThisHole[oi]?" +1":""));
+      const pb = h("button",{style:{flex:1,minWidth:"47%",background:partner===oi?"#162616":"#0a130a",border:partner===oi?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:partner===oi?"#e4ede4":"#bbb",padding:"13px 8px",fontSize:14,cursor:"pointer",fontFamily:"Georgia,serif",marginBottom:6,textAlign:"center"}},(orderPlayers[oi]?.name||"?")+(strokesThisHole[oi]>0?" "+(strokesThisHole[oi]===2?"••":"•"):""));
       pb.onclick = () => setState({partner:oi});
       pickDiv.appendChild(pb);
     });
@@ -1741,10 +1761,17 @@ function buildGame() {
 
     if (winner && winner!=="none") {
       card.appendChild(h("div",{className:"sec"},"How Many Points?"));
-      const ptGrid = h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5,margin:"8px 0"}});
-      [1,2,3,4,5,6,7].forEach(p => {
-        const pb = h("button",{style:{background:pts===p?"#162616":"#0a130a",border:pts===p?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:pts===p?"#e4ede4":"#bbb",padding:"13px 4px",fontSize:20,cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"center"}},p+(p===7?" ×2":""));
-        pb.onclick = () => setState({pts:p});
+      const ptGrid = h("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,margin:"8px 0"}});
+      // Regular pts 1-7, then umbrella 7☂ and 8☂
+      const ptOptions = [
+        {val:1,lbl:"1"},{val:2,lbl:"2"},{val:3,lbl:"3"},{val:4,lbl:"4"},
+        {val:5,lbl:"5"},{val:6,lbl:"6"},{val:7,lbl:"7"},
+        {val:70,lbl:"7☂"},{val:80,lbl:"8☂"}
+      ];
+      ptOptions.forEach(({val,lbl}) => {
+        const isUmb = val===70||val===80;
+        const pb = h("button",{style:{background:pts===val?"#162616":"#0a130a",border:pts===val?"2px solid #4ade80":"1px solid #1e3a1e",borderRadius:8,color:pts===val?"#e4ede4":"#bbb",padding:"13px 4px",fontSize:isUmb?16:20,cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"center"}},lbl);
+        pb.onclick = () => setState({pts:val});
         ptGrid.appendChild(pb);
       });
       card.appendChild(ptGrid);
@@ -1752,7 +1779,7 @@ function buildGame() {
 
     // Money preview
     if (winner && (winner==="none"||pts)) {
-      const realPts = pts===7?14:(pts||0);
+      const realPts = pts===70?14:pts===80?16:(pts||0);
       const ptVal = realPts * activeDpp * (partner==="alone"?2:1);
       const mbox = h("div",{style:{background:"#080d08",borderRadius:8,padding:"10px 12px",margin:"10px 0",fontSize:13}});
       mbox.appendChild(h("div",{style:{color:"#4ade80",fontSize:10,letterSpacing:2,marginBottom:6}},"MONEY PREVIEW"));
@@ -1781,14 +1808,15 @@ function buildGame() {
             h("div",{style:{color:"#4ade80",marginTop:4}},"Winners ("+winNames+"): split +$"+(ptVal*3)+" (~$"+Math.ceil(ptVal*3/2)+"/$"+Math.floor(ptVal*3/2)+")")));
         }
       }
-      if (pts===7) mbox.appendChild(h("div",{style:{color:"#f59e0b",fontSize:11,marginTop:6}},"🔥 7 pts → 14"));
+      if (pts===70) mbox.appendChild(h("div",{style:{color:"#60a5fa",fontSize:11,marginTop:6}},"☂ 7 umbrella → 14 pts"));
+      if (pts===80) mbox.appendChild(h("div",{style:{color:"#60a5fa",fontSize:11,marginTop:6}},"☂ 8 umbrella → 16 pts"));
       card.appendChild(mbox);
     }
 
     const confirmBtn = h("button",{className:"btn",style:{opacity:(winner==="none"||pts)?1:0.4}},holeNum<18?"Confirm → Hole "+(holeNum+1):"Finish Round");
     confirmBtn.onclick = async () => {
       if (!winner||(winner!=="none"&&!pts)) return;
-      const realPts = pts===7?14:(pts||0);
+      const realPts = pts===70?14:pts===80?16:(pts||0);
       const hRec = {hole:holeNum, captainOI:curCaptOI, partnerOI:partner==="alone"?null:partner, partner, winner, pts:realPts, dpp:activeDpp, ledgerAfter:null};
       const hdcps = hdcpInfo?.courseHdcps;
       const nl = applyHoleMoney(hRec, ledger, activeDpp, hdcps);
