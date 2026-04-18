@@ -611,7 +611,7 @@ function buildHome() {
     h("div",{className:"hdr"},h("div",{className:"logo"},"5-MAN"),h("div",{className:"sub"},"CAPTAIN AT THE CREEK"),h("div",{style:{fontSize:11,color:"#4ade80",marginTop:4}},"👤 "+(user?.name||"")))
   );
 
-  // If active round in progress, show game code prominently
+  // Active round in memory — show resume card
   if (state.round && state.round.status === "active") {
     const gameCard = h("div",{className:"card",style:{border:"2px solid #4ade80"}});
     gameCard.appendChild(h("div",{className:"sec"},"Round In Progress"));
@@ -624,6 +624,31 @@ function buildHome() {
     resumeBtn.onclick = () => setState({screen:"game"});
     gameCard.appendChild(resumeBtn);
     wrap.appendChild(gameCard);
+  }
+
+  // Resumable round found in Firestore (after logout/refresh/crash)
+  if (!state.round && state.resumableRound) {
+    const rr = state.resumableRound;
+    const holesCompleted = (rr.holes||[]).length;
+    const resumeCard = h("div",{className:"card",style:{border:"2px solid #f59e0b"}});
+    resumeCard.appendChild(h("div",{className:"sec"},"Resume Interrupted Round"));
+    resumeCard.appendChild(h("div",{style:{textAlign:"center",padding:"10px 0"}},
+      h("div",{style:{fontSize:13,color:"#e4ede4",marginBottom:4}},rr.courseData?.name||"Unknown Course"),
+      h("div",{style:{fontSize:24,fontWeight:700,color:"#f59e0b",letterSpacing:4,marginBottom:4}},rr.gameCode||""),
+      h("div",{style:{fontSize:12,color:"#888"}},"Hole "+(holesCompleted+1)+" of 18 · $"+(rr.dpp||0)+"/pt")
+    ));
+    const resumeBtn = h("button",{className:"btn"},"↩ Pick Up Where You Left Off");
+    resumeBtn.onclick = () => resumeRound(rr);
+    const discardBtn = h("button",{className:"btn-dark"},"Discard — Start Fresh");
+    discardBtn.onclick = async () => {
+      // Mark the old round as abandoned
+      try { await db.collection("rounds").doc(rr.id).update({status:"abandoned"}); } catch(e) {}
+      state.resumableRound = null;
+      render();
+    };
+    resumeCard.appendChild(resumeBtn);
+    resumeCard.appendChild(discardBtn);
+    wrap.appendChild(resumeCard);
   }
 
   const card = h("div",{className:"card"});
@@ -1162,9 +1187,27 @@ function buildSetupPlayers() {
     if (p) {
       const row = h("div",{className:"player-row"});
       row.appendChild(h("span",{style:{flex:1,fontSize:14}},p.name));
-      row.appendChild(h("span",{style:{fontSize:12,color:"#4ade80"}},"Idx "+(p.lastIndex||p.index||"?")));
-      const x = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px"}},"✕");
-      x.onclick = () => { const np=[...setupPlayers]; np[i]=null; setState({setupPlayers:np}); };
+      // Editable HCP index inline
+      const idxWrap = h("div",{style:{display:"flex",alignItems:"center",gap:4}});
+      idxWrap.appendChild(h("span",{style:{fontSize:11,color:"#555"}},"Idx"));
+      const idxInp = h("input",{type:"number",step:"0.1",
+        style:{width:60,background:"#0a130a",border:"1px solid #1e3a1e",borderRadius:6,
+               color:"#4ade80",padding:"4px 6px",fontSize:13,textAlign:"center",
+               outline:"none",fontFamily:"Georgia,serif",marginBottom:0}});
+      idxInp.value = p.lastIndex||p.index||"";
+      idxInp.addEventListener("input", async e => {
+        const newIdx = e.target.value;
+        // Update in setupPlayers immediately
+        const np = [...state.setupPlayers];
+        np[i] = {...np[i], lastIndex:newIdx, index:newIdx};
+        state.setupPlayers = np;
+        // Save to Firestore in background
+        try { await db.collection("players").doc(p.id).update({lastIndex:newIdx, index:newIdx}); } catch(err) {}
+      });
+      idxWrap.appendChild(idxInp);
+      row.appendChild(idxWrap);
+      const x = h("button",{className:"btn-ghost",style:{fontSize:11,padding:"4px 8px",marginLeft:4}},"✕");
+      x.onclick = () => { const np=[...state.setupPlayers]; np[i]=null; setState({setupPlayers:np}); };
       row.appendChild(x);
       slotDiv.appendChild(row);
     } else {
@@ -1225,6 +1268,33 @@ function isAdmin() {
 }
 function canEditPlayer(playerId) {
   return isAdmin() || state.user?.uid === playerId;
+}
+
+// -- Resume round --
+async function resumeRound(roundDoc) {
+  const orderPlayers = roundDoc.playerObjects ||
+    (roundDoc.playerOrder||[]).map(id => state.players.find(p=>p.id===id)||{name:"?",index:"0"});
+  const holes = roundDoc.holes || [];
+  const ledger = holes.length > 0
+    ? (holes[holes.length-1].ledgerAfter || [0,0,0,0,0])
+    : [0,0,0,0,0];
+  const hdcpInfo = roundDoc.courseData ? computeHdcp(roundDoc.courseData, orderPlayers) : null;
+  // Restore full round state
+  state.roundId = roundDoc.id;
+  state.round = {...roundDoc, playerObjects: orderPlayers};
+  state.holes = holes;
+  state.ledger = ledger;
+  state.currentHole = holes.length;
+  state.activeDpp = roundDoc.activeDpp || roundDoc.dpp || 1;
+  state.hdcpInfo = hdcpInfo;
+  state.pressLog = [];
+  state.passed = [];
+  state.step = "captain";
+  state.partner = null;
+  state.winner = null;
+  state.pts = null;
+  state.resumableRound = null;
+  setState({screen:"game"});
 }
 
 // -- Hard reset stats --
@@ -1560,6 +1630,7 @@ function buildSetupConfirm() {
       pressMode: setupPressMode,
       lightningRound: setupLightning,
       activeDpp: parseFloat(setupDpp),
+      createdBy: state.user?.uid,
     });
     const hdcpInfo = computeHdcp(setupCourse, setupPlayers);
     // Store full player objects directly in round so they're always available
@@ -2084,7 +2155,6 @@ function buildStats() {
 
 // -- Init --
 async function init() {
-    // Render immediately so user sees login screen, not loading forever
   const saved = loadSession();
   if (saved) {
     state.user = saved;
@@ -2092,9 +2162,8 @@ async function init() {
   } else {
     state.screen = "login";
   }
-    render(); // Show login or home right away
-  
-  // Load players in background — don't block render
+  render(); // Show immediately
+
   if (state.user) {
     try {
       const players = await Promise.race([
@@ -2102,11 +2171,27 @@ async function init() {
         new Promise((_,rej) => setTimeout(()=>rej(new Error("timeout")), 8000))
       ]);
       state.players = players;
-      render(); // Re-render with players loaded
+      render();
     } catch(e) {
       console.error("Players load error:", e.message);
-      // Still show app — players will be empty but app works
       render();
+    }
+
+    // Check for resumable active round
+    try {
+      const snap = await db.collection("rounds")
+        .where("status","==","active")
+        .where("createdBy","==",state.user.uid)
+        .orderBy("createdAt","desc")
+        .limit(1)
+        .get();
+      if (!snap.empty) {
+        const roundDoc = {id:snap.docs[0].id, ...snap.docs[0].data()};
+        state.resumableRound = roundDoc;
+        render(); // Re-render home with resume prompt
+      }
+    } catch(e) {
+      console.error("Resume check error:", e.message);
     }
   }
 }
